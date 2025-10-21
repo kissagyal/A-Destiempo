@@ -1,0 +1,158 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Discos - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-compact-disc me-2"></i>Catálogo de Discos
+            </h1>
+            <p class="text-muted">Explora nuestra amplia colección de música</p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_actual }}" placeholder="Título o artista...">
+            </div>
+            <div class="col-md-3">
+                <label for="formato" class="form-label">Formato</label>
+                <select class="form-select" id="formato" name="formato">
+                    <option value="">Todos los formatos</option>
+                    <option value="vinilo" {% if formato_actual == 'vinilo' %}selected{% endif %}>Vinilo</option>
+                    <option value="cd" {% if formato_actual == 'cd' %}selected{% endif %}>CD</option>
+                    <option value="digital" {% if formato_actual == 'digital' %}selected{% endif %}>Digital</option>
+                    <option value="casete" {% if formato_actual == 'casete' %}selected{% endif %}>Casete</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="genero" class="form-label">Género</label>
+                <select class="form-select" id="genero" name="genero">
+                    <option value="">Todos los géneros</option>
+                    {% for genero in generos %}
+                        <option value="{{ genero.id }}" {% if genero_actual == genero.id|stringformat:"s" %}selected{% endif %}>
+                            {{ genero.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100 me-2">
+                    <i class="fas fa-search"></i>
+                </button>
+                <a href="{% url 'lista_discos' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    <div class="row">
+        {% if discos %}
+            {% for disco in discos %}
+            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                <div class="card h-100 fade-in-up">
+                    <a href="{% url 'detalle_disco' disco.id %}" class="text-decoration-none">
+                        {% if disco.portada %}
+                            <img src="{{ disco.portada.url }}" class="card-img-top" alt="{{ disco.titulo }}">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 250px;">
+                                <i class="fas fa-compact-disc fa-4x text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <h6 class="card-title text-light">{{ disco.titulo }}</h6>
+                        <p class="card-text text-primary fw-bold mb-2">{{ disco.artista.nombre }}</p>
+                        
+                        <div class="mb-2">
+                            {% if disco.genero %}
+                                <span class="badge bg-secondary me-1">{{ disco.genero.nombre }}</span>
+                            {% endif %}
+                            <span class="badge bg-info">{{ disco.get_formato_display }}</span>
+                        </div>
+                        
+                        <p class="card-text text-muted small mb-3">
+                            <i class="fas fa-calendar me-1"></i>{{ disco.año_lanzamiento }}
+                            {% if disco.stock > 0 %}
+                                <span class="text-success ms-2">
+                                    <i class="fas fa-check-circle me-1"></i>Disponible
+                                </span>
+                            {% else %}
+                                <span class="text-danger ms-2">
+                                    <i class="fas fa-times-circle me-1"></i>Agotado
+                                </span>
+                            {% endif %}
+                        </p>
+                        
+                        <div class="mt-auto">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price fs-5">${{ disco.precio|floatformat:2 }}</span>
+                                <a href="{% url 'detalle_disco' disco.id %}" class="btn btn-outline-primary btn-sm">
+                                    Ver <i class="fas fa-eye ms-1"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-compact-disc fa-5x text-muted mb-4"></i>
+                    <h3 class="text-muted">No se encontraron discos</h3>
+                    <p class="text-muted">Intenta ajustar los filtros de búsqueda</p>
+                    <a href="{% url 'lista_discos' %}" class="btn btn-primary">
+                        Limpiar Filtros
+                    </a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Paginación (si tienes implementada) -->
+    {% if is_paginated %}
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="Paginación de discos">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1">Primera</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+                        </li>
+                    {% endif %}
+                    
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Última</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}A Destiempo - Tu tienda de música{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-6">
+                <h1 class="hero-title mb-4">
+                    A Destiempo
+                </h1>
+                <p class="hero-subtitle">
+                    Descubre la mejor colección de discos, vinilos e instrumentos musicales. 
+                    Donde la música cobra vida.
+                </p>
+                <div class="d-flex gap-3 flex-wrap">
+                    <a href="{% url 'lista_discos' %}" class="btn btn-primary btn-lg">
+                        <i class="fas fa-compact-disc me-2"></i>Explorar Discos
+                    </a>
+                    <a href="{% url 'lista_instrumentos' %}" class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-guitar me-2"></i>Ver Instrumentos
+                    </a>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="text-center">
+                    <i class="fas fa-music" style="font-size: 15rem; color: var(--primary-color); opacity: 0.1;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Discos Destacados -->
+{% if discos_destacados %}
+<section class="py-5">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-gradient mb-3">
+                    <i class="fas fa-star me-2"></i>Discos Destacados
+                </h2>
+                <p class="text-muted">Descubre nuestra selección especial de música</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            {% for disco in discos_destacados %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 fade-in-up">
+                    {% if disco.portada %}
+                        <img src="{{ disco.portada.url }}" class="card-img-top" alt="{{ disco.titulo }}">
+                    {% else %}
+                        <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary">
+                            <i class="fas fa-compact-disc fa-4x text-muted"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="card-body">
+                        <h5 class="card-title">{{ disco.titulo }}</h5>
+                        <p class="card-text text-primary fw-bold">{{ disco.artista.nombre }}</p>
+                        <p class="card-text text-muted small">
+                            <i class="fas fa-calendar me-1"></i>{{ disco.año_lanzamiento }}
+                            <span class="badge bg-secondary ms-2">{{ disco.get_formato_display }}</span>
+                        </p>
+                        {% if disco.descripcion %}
+                            <p class="card-text text-muted small">{{ disco.descripcion|truncatechars:100 }}</p>
+                        {% endif %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">${{ disco.precio|floatformat:2 }}</span>
+                            <a href="{% url 'detalle_disco' disco.id %}" class="btn btn-outline-primary btn-sm">
+                                Ver Detalles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{% url 'lista_discos' %}" class="btn btn-primary">
+                Ver Todos los Discos <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Instrumentos Destacados -->
+{% if instrumentos_destacados %}
+<section class="py-5 bg-dark">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="text-gradient mb-3">
+                    <i class="fas fa-guitar me-2"></i>Instrumentos Destacados
+                </h2>
+                <p class="text-muted">Encuentra el instrumento perfecto para tu música</p>
+            </div>
+        </div>
+        
+        <div class="row">
+            {% for instrumento in instrumentos_destacados %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 fade-in-up">
+                    {% if instrumento.imagen_principal %}
+                        <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top" alt="{{ instrumento.nombre }}">
+                    {% else %}
+                        <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary">
+                            <i class="fas fa-guitar fa-4x text-muted"></i>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="card-body">
+                        <h5 class="card-title">{{ instrumento.nombre }}</h5>
+                        <p class="card-text text-primary fw-bold">{{ instrumento.marca }}</p>
+                        <p class="card-text text-muted small">
+                            <span class="badge bg-info me-2">{{ instrumento.categoria.nombre }}</span>
+                            <span class="badge bg-secondary">{{ instrumento.get_estado_display }}</span>
+                        </p>
+                        {% if instrumento.descripcion %}
+                            <p class="card-text text-muted small">{{ instrumento.descripcion|truncatechars:100 }}</p>
+                        {% endif %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="price">${{ instrumento.precio|floatformat:2 }}</span>
+                            <a href="{% url 'detalle_instrumento' instrumento.id %}" class="btn btn-outline-primary btn-sm">
+                                Ver Detalles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="text-center mt-4">
+            <a href="{% url 'lista_instrumentos' %}" class="btn btn-primary">
+                Ver Todos los Instrumentos <i class="fas fa-arrow-right ms-2"></i>
+            </a>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Sección CTA -->
+<section class="py-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto text-center">
+                <h3 class="text-gradient mb-4">¿Listo para encontrar tu próximo disco o instrumento?</h3>
+                <p class="text-muted mb-4">Únete a nuestra comunidad de amantes de la música y descubre colecciones únicas.</p>
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'signup' %}" class="btn btn-primary btn-lg me-3">
+                        <i class="fas fa-user-plus me-2"></i>Crear Cuenta
+                    </a>
+                {% endif %}
+                <a href="{% url 'lista_discos' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-shopping-bag me-2"></i>Explora Ahora
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

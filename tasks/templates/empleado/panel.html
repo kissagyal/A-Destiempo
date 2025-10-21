@@ -1,0 +1,173 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Panel de Empleado - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-tachometer-alt me-2"></i>Panel de Empleado
+            </h1>
+            <p class="text-muted">Gestiona discos e instrumentos</p>
+        </div>
+    </div>
+
+    <!-- Acceso rápido -->
+    <div class="row mb-5">
+        <div class="col-md-6 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-compact-disc me-2"></i>Gestionar Discos
+                    </h5>
+                    <p class="card-text">Añadir, editar y administrar discos</p>
+                    <a href="{% url 'admin:tasks_disco_changelist' %}" class="btn btn-light">
+                        <i class="fas fa-cog me-1"></i>Administrar Discos
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-guitar me-2"></i>Gestionar Instrumentos
+                    </h5>
+                    <p class="card-text">Añadir, editar y administrar instrumentos</p>
+                    <a href="{% url 'admin:tasks_instrumento_changelist' %}" class="btn btn-light">
+                        <i class="fas fa-cog me-1"></i>Administrar Instrumentos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Productos recientes -->
+    <div class="row">
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-music me-2"></i>Discos Recientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if discos_recientes %}
+                        {% for disco in discos_recientes %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom border-secondary">
+                            <div>
+                                <h6 class="text-light mb-1">{{ disco.titulo }}</h6>
+                                <small class="text-muted">{{ disco.artista.nombre }} - {{ disco.get_formato_display }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="price">${{ disco.precio|floatformat:2 }}</span>
+                                <br>
+                                {% if disco.activo %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="text-center">
+                            <a href="{% url 'admin:tasks_disco_changelist' %}" class="btn btn-outline-primary">
+                                Ver Todos los Discos
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No hay discos registrados</p>
+                        <div class="text-center">
+                            <a href="{% url 'admin:tasks_disco_add' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Añadir Primer Disco
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-guitar me-2"></i>Instrumentos Recientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if instrumentos_recientes %}
+                        {% for instrumento in instrumentos_recientes %}
+                        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom border-secondary">
+                            <div>
+                                <h6 class="text-light mb-1">{{ instrumento.nombre }}</h6>
+                                <small class="text-muted">{{ instrumento.marca }} - {{ instrumento.categoria.nombre }}</small>
+                            </div>
+                            <div class="text-end">
+                                <span class="price">${{ instrumento.precio|floatformat:2 }}</span>
+                                <br>
+                                {% if instrumento.activo %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        <div class="text-center">
+                            <a href="{% url 'admin:tasks_instrumento_changelist' %}" class="btn btn-outline-primary">
+                                Ver Todos los Instrumentos
+                            </a>
+                        </div>
+                    {% else %}
+                        <p class="text-muted text-center">No hay instrumentos registrados</p>
+                        <div class="text-center">
+                            <a href="{% url 'admin:tasks_instrumento_add' %}" class="btn btn-primary">
+                                <i class="fas fa-plus me-1"></i>Añadir Primer Instrumento
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Enlaces útiles -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-link me-2"></i>Enlaces Útiles
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin:tasks_artista_changelist' %}" class="btn btn-outline-primary w-100">
+                                <i class="fas fa-users me-2"></i>Artistas
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin:tasks_genero_changelist' %}" class="btn btn-outline-info w-100">
+                                <i class="fas fa-tags me-2"></i>Géneros
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin:tasks_categoriainstrumento_changelist' %}" class="btn btn-outline-success w-100">
+                                <i class="fas fa-th-large me-2"></i>Categorías
+                            </a>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <a href="{% url 'admin:index' %}" class="btn btn-outline-warning w-100">
+                                <i class="fas fa-cog me-2"></i>Admin General
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

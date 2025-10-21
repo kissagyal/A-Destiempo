@@ -1,0 +1,127 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ disco.titulo }} - {{ disco.artista.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-5">
+            <div class="product-detail">
+                {% if disco.portada %}
+                    <img src="{{ disco.portada.url }}" class="card-img-top product-image mb-4" alt="{{ disco.titulo }}">
+                {% else %}
+                    <div class="d-flex align-items-center justify-content-center bg-secondary rounded mb-4" style="height: 400px;">
+                        <i class="fas fa-compact-disc fa-8x text-muted"></i>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-7">
+            <div class="product-detail">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'inicio' %}" class="text-muted">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'lista_discos' %}" class="text-muted">Discos</a></li>
+                        <li class="breadcrumb-item active text-light">{{ disco.titulo }}</li>
+                    </ol>
+                </nav>
+                
+                <h1 class="display-6 text-gradient mb-3">{{ disco.titulo }}</h1>
+                <h3 class="text-primary mb-4">{{ disco.artista.nombre }}</h3>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Formato:</strong> 
+                            <span class="badge bg-info">{{ disco.get_formato_display }}</span>
+                        </p>
+                        <p class="mb-2"><strong>Año:</strong> {{ disco.año_lanzamiento }}</p>
+                        {% if disco.genero %}
+                        <p class="mb-2"><strong>Género:</strong> 
+                            <span class="badge bg-secondary">{{ disco.genero.nombre }}</span>
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Stock:</strong> 
+                            {% if disco.stock > 0 %}
+                                <span class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>{{ disco.stock }} disponibles
+                                </span>
+                            {% else %}
+                                <span class="text-danger">
+                                    <i class="fas fa-times-circle me-1"></i>Agotado
+                                </span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-0"><strong>Precio:</strong> 
+                            <span class="price fs-4">${{ disco.precio|floatformat:2 }}</span>
+                        </p>
+                    </div>
+                </div>
+                
+                {% if disco.descripcion %}
+                <div class="mb-4">
+                    <h5>Descripción</h5>
+                    <p class="text-muted">{{ disco.descripcion }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex gap-3">
+                    {% if disco.stock > 0 %}
+                        <button class="btn btn-primary btn-lg">
+                            <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
+                        </button>
+                    {% else %}
+                        <button class="btn btn-secondary btn-lg" disabled>
+                            <i class="fas fa-times-circle me-2"></i>Agotado
+                        </button>
+                    {% endif %}
+                    <button class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-heart me-2"></i>Favoritos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Discos Relacionados -->
+    {% if discos_relacionados %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4 class="text-gradient mb-4">
+                <i class="fas fa-compact-disc me-2"></i>Más de {{ disco.artista.nombre }}
+            </h4>
+            
+            <div class="row">
+                {% for disco_rel in discos_relacionados %}
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <a href="{% url 'detalle_disco' disco_rel.id %}" class="text-decoration-none">
+                            {% if disco_rel.portada %}
+                                <img src="{{ disco_rel.portada.url }}" class="card-img-top" alt="{{ disco_rel.titulo }}">
+                            {% else %}
+                                <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 200px;">
+                                    <i class="fas fa-compact-disc fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </a>
+                        
+                        <div class="card-body">
+                            <h6 class="card-title text-light">{{ disco_rel.titulo }}</h6>
+                            <p class="card-text text-primary fw-bold small">{{ disco_rel.artista.nombre }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price small">${{ disco_rel.precio|floatformat:2 }}</span>
+                                <span class="badge bg-info small">{{ disco_rel.get_formato_display }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

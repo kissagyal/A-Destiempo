@@ -1,0 +1,127 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ instrumento.marca }} {{ instrumento.nombre }}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-5">
+            <div class="product-detail">
+                {% if instrumento.imagen_principal %}
+                    <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top product-image mb-4" alt="{{ instrumento.nombre }}">
+                {% else %}
+                    <div class="d-flex align-items-center justify-content-center bg-secondary rounded mb-4" style="height: 400px;">
+                        <i class="fas fa-guitar fa-8x text-muted"></i>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="col-lg-7">
+            <div class="product-detail">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="{% url 'inicio' %}" class="text-muted">Inicio</a></li>
+                        <li class="breadcrumb-item"><a href="{% url 'lista_instrumentos' %}" class="text-muted">Instrumentos</a></li>
+                        <li class="breadcrumb-item active text-light">{{ instrumento.nombre }}</li>
+                    </ol>
+                </nav>
+                
+                <h1 class="display-6 text-gradient mb-3">{{ instrumento.nombre }}</h1>
+                <h3 class="text-primary mb-4">{{ instrumento.marca }}</h3>
+                {% if instrumento.modelo %}
+                    <h5 class="text-muted mb-4">{{ instrumento.modelo }}</h5>
+                {% endif %}
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Categoría:</strong> 
+                            <span class="badge bg-info">{{ instrumento.categoria.nombre }}</span>
+                        </p>
+                        <p class="mb-2"><strong>Estado:</strong> 
+                            <span class="badge bg-secondary">{{ instrumento.get_estado_display }}</span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-2"><strong>Stock:</strong> 
+                            {% if instrumento.stock > 0 %}
+                                <span class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>{{ instrumento.stock }} disponibles
+                                </span>
+                            {% else %}
+                                <span class="text-danger">
+                                    <i class="fas fa-times-circle me-1"></i>Agotado
+                                </span>
+                            {% endif %}
+                        </p>
+                        <p class="mb-0"><strong>Precio:</strong> 
+                            <span class="price fs-4">${{ instrumento.precio|floatformat:2 }}</span>
+                        </p>
+                    </div>
+                </div>
+                
+                {% if instrumento.descripcion %}
+                <div class="mb-4">
+                    <h5>Descripción</h5>
+                    <p class="text-muted">{{ instrumento.descripcion }}</p>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex gap-3">
+                    {% if instrumento.stock > 0 %}
+                        <button class="btn btn-primary btn-lg">
+                            <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
+                        </button>
+                    {% else %}
+                        <button class="btn btn-secondary btn-lg" disabled>
+                            <i class="fas fa-times-circle me-2"></i>Agotado
+                        </button>
+                    {% endif %}
+                    <button class="btn btn-outline-primary btn-lg">
+                        <i class="fas fa-heart me-2"></i>Favoritos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Instrumentos Relacionados -->
+    {% if instrumentos_relacionados %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h4 class="text-gradient mb-4">
+                <i class="fas fa-guitar me-2"></i>Más {{ instrumento.categoria.nombre }}s
+            </h4>
+            
+            <div class="row">
+                {% for inst_rel in instrumentos_relacionados %}
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="card h-100">
+                        <a href="{% url 'detalle_instrumento' inst_rel.id %}" class="text-decoration-none">
+                            {% if inst_rel.imagen_principal %}
+                                <img src="{{ inst_rel.imagen_principal.url }}" class="card-img-top" alt="{{ inst_rel.nombre }}">
+                            {% else %}
+                                <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 200px;">
+                                    <i class="fas fa-guitar fa-3x text-muted"></i>
+                                </div>
+                            {% endif %}
+                        </a>
+                        
+                        <div class="card-body">
+                            <h6 class="card-title text-light">{{ inst_rel.nombre }}</h6>
+                            <p class="card-text text-primary fw-bold small">{{ inst_rel.marca }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="price small">${{ inst_rel.precio|floatformat:2 }}</span>
+                                <span class="badge bg-info small">{{ inst_rel.get_estado_display }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
