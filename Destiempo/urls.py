@@ -29,6 +29,20 @@ urlpatterns = [
     path('disco/<int:disco_id>/', views.detalle_disco, name='detalle_disco'),
     path('instrumento/<int:instrumento_id>/', views.detalle_instrumento, name='detalle_instrumento'),
     path('panel-empleado/', views.panel_empleado, name='panel_empleado'),
+    # CRUDs para vendedor
+    path('panel-empleado/disco/crear/', views.crear_disco, name='crear_disco'),
+    path('panel-empleado/disco/<int:disco_id>/editar/', views.editar_disco, name='editar_disco'),
+    path('panel-empleado/disco/<int:disco_id>/eliminar/', views.eliminar_disco, name='eliminar_disco'),
+    path('panel-empleado/instrumento/crear/', views.crear_instrumento, name='crear_instrumento'),
+    path('panel-empleado/instrumento/<int:instrumento_id>/editar/', views.editar_instrumento, name='editar_instrumento'),
+    path('panel-empleado/instrumento/<int:instrumento_id>/eliminar/', views.eliminar_instrumento, name='eliminar_instrumento'),
+    # Carrito y compra (requieren autenticación)
+    path('carrito/', views.ver_carrito, name='carrito'),
+    path('checkout/', views.checkout, name='checkout'),
+    path('disco/<int:disco_id>/agregar/', views.agregar_al_carrito_disco, name='agregar_carrito_disco'),
+    path('instrumento/<int:instrumento_id>/agregar/', views.agregar_al_carrito_instrumento, name='agregar_carrito_instrumento'),
+    # Autenticación personalizada
+    path('accounts/login/', views.login_view, name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
 ]
 

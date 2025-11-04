@@ -45,9 +45,9 @@
                     </div>
                     <div class="col-md-6">
                         <p class="mb-2"><strong>Stock:</strong> 
-                            {% if disco.stock > 0 %}
+                            {% if disco.tiene_stock %}
                                 <span class="text-success">
-                                    <i class="fas fa-check-circle me-1"></i>{{ disco.stock }} disponibles
+                                    <i class="fas fa-check-circle me-1"></i>{{ disco.stock_total }} disponibles
                                 </span>
                             {% else %}
                                 <span class="text-danger">
@@ -69,10 +69,14 @@
                 {% endif %}
                 
                 <div class="d-flex gap-3">
-                    {% if disco.stock > 0 %}
-                        <button class="btn btn-primary btn-lg">
-                            <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
-                        </button>
+                    {% if disco.tiene_stock %}
+                        <form method="post" action="{% url 'agregar_carrito_disco' disco.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="cantidad" value="1">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
+                            </button>
+                        </form>
                     {% else %}
                         <button class="btn btn-secondary btn-lg" disabled>
                             <i class="fas fa-times-circle me-2"></i>Agotado

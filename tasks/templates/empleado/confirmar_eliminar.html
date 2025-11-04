@@ -1,0 +1,53 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Confirmar Eliminación - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="product-detail text-center">
+                <div class="mb-4">
+                    <i class="fas fa-exclamation-triangle fa-5x text-gradient"></i>
+                </div>
+                
+                <h2 class="text-gradient mb-3">
+                    ¿Confirmar eliminación?
+                </h2>
+                
+                {% if tipo == 'disco' %}
+                    <p class="text-muted mb-4">
+                        Estás a punto de eliminar el disco:<br>
+                        <strong class="text-light">{{ objeto.titulo }}</strong><br>
+                        <span class="text-muted">{{ objeto.artista.nombre }}</span>
+                    </p>
+                {% else %}
+                    <p class="text-muted mb-4">
+                        Estás a punto de eliminar el instrumento:<br>
+                        <strong class="text-light">{{ objeto.nombre }}</strong><br>
+                        <span class="text-muted">{{ objeto.marca }}</span>
+                    </p>
+                {% endif %}
+                
+                <p class="text-danger mb-4">
+                    <i class="fas fa-info-circle me-2"></i>Esta acción no se puede deshacer.
+                </p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex gap-3 justify-content-center">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="fas fa-trash me-2"></i>Sí, Eliminar
+                        </button>
+                        <a href="{% url 'panel_empleado' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times me-2"></i>Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

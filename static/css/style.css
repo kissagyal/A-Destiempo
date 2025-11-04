@@ -1,6 +1,7 @@
 /* Estilos modernos inspirados en Tidal y Fender */
 
 :root {
+    /* Ajuste sutil para armonizar con el logo monocromo/piano */
     --primary-color: #00d4aa;
     --secondary-color: #1db954;
     --accent-color: #ff6b35;
@@ -30,6 +31,13 @@ body {
 .navbar-brand .text-gradient {
     font-weight: 700;
     font-size: 1.5rem;
+}
+
+.brand-logo {
+    width: 34px;
+    height: 34px;
+    object-fit: contain;
+    filter: brightness(1.2);
 }
 
 .navbar-nav .nav-link {
@@ -125,6 +133,13 @@ body {
     background: linear-gradient(135deg, var(--darker-bg) 0%, var(--dark-bg) 50%, var(--card-bg) 100%);
     padding: 100px 0 80px;
     margin-top: 76px;
+}
+
+.hero-section .logo-watermark {
+    width: 15rem;
+    height: 15rem;
+    opacity: 0.1;
+    filter: grayscale(100%) brightness(1.6);
 }
 
 .hero-title {

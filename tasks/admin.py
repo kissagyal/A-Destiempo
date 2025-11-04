@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin
 from django.contrib.auth.models import User
 from .models import (
     PerfilUsuario, Genero, Artista, Disco, 
-    CategoriaInstrumento, Instrumento
+    CategoriaInstrumento, Instrumento, Sucursal, 
+    Inventario, InventarioMovimiento
 )
 
 # Inline admin para el perfil de usuario
@@ -45,14 +46,15 @@ class DiscoInline(admin.TabularInline):
 @admin.register(Disco)
 class DiscoAdmin(admin.ModelAdmin):
     list_display = ('titulo', 'artista', 'formato', 'precio', 'stock', 'activo')
-    list_filter = ('formato', 'genero', 'activo', 'año_lanzamiento')
+    list_filter = ('formato', 'genero', 'artista', 'activo', 'año_lanzamiento')
     search_fields = ('titulo', 'artista__nombre', 'descripcion')
     list_editable = ('precio', 'stock', 'activo')
     raw_id_fields = ('artista',)
 
 @admin.register(CategoriaInstrumento)
 class CategoriaInstrumentoAdmin(admin.ModelAdmin):
-    list_display = ('nombre', 'descripcion')
+    list_display = ('nombre', 'tipo', 'descripcion')
+    list_filter = ('tipo',)
     search_fields = ('nombre',)
 
 class InstrumentoInline(admin.TabularInline):
@@ -63,10 +65,38 @@ class InstrumentoInline(admin.TabularInline):
 @admin.register(Instrumento)
 class InstrumentoAdmin(admin.ModelAdmin):
     list_display = ('nombre', 'marca', 'categoria', 'precio', 'estado', 'stock', 'activo')
-    list_filter = ('categoria', 'estado', 'activo', 'marca')
+    list_filter = ('categoria', 'categoria__tipo', 'estado', 'activo', 'marca')
     search_fields = ('nombre', 'marca', 'modelo', 'descripcion')
     list_editable = ('precio', 'stock', 'activo')
     raw_id_fields = ('categoria',)
+
+@admin.register(Sucursal)
+class SucursalAdmin(admin.ModelAdmin):
+    list_display = ('nombre', 'ciudad', 'activa', 'created_at')
+    list_filter = ('activa', 'ciudad', 'created_at')
+    search_fields = ('nombre', 'ciudad', 'direccion')
+    list_editable = ('activa',)
+
+@admin.register(Inventario)
+class InventarioAdmin(admin.ModelAdmin):
+    list_display = ('producto', 'sucursal', 'stock_disponible', 'stock_reservado', 'stock_total')
+    list_filter = ('sucursal', 'producto_disco', 'producto_instrumento')
+    search_fields = ('producto_disco__titulo', 'producto_instrumento__nombre', 'sucursal__nombre')
+    raw_id_fields = ('producto_disco', 'producto_instrumento', 'sucursal')
+    
+    def producto(self, obj):
+        return obj.producto
+
+@admin.register(InventarioMovimiento)
+class InventarioMovimientoAdmin(admin.ModelAdmin):
+    list_display = ('producto', 'sucursal', 'tipo', 'cantidad', 'usuario', 'created_at')
+    list_filter = ('tipo', 'sucursal', 'created_at', 'usuario')
+    search_fields = ('producto_disco__titulo', 'producto_instrumento__nombre', 'motivo')
+    raw_id_fields = ('producto_disco', 'producto_instrumento', 'sucursal', 'usuario')
+    readonly_fields = ('created_at',)
+    
+    def producto(self, obj):
+        return obj.producto
 
 # Configuración personalizada del sitio admin
 admin.site.site_header = "A Destiempo - Administración"

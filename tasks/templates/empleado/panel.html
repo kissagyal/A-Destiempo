@@ -14,31 +14,59 @@
         </div>
     </div>
 
-    <!-- Acceso rápido -->
+    <!-- Acceso rápido CRUD -->
     <div class="row mb-5">
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
             <div class="card bg-primary text-white">
                 <div class="card-body">
                     <h5 class="card-title">
                         <i class="fas fa-compact-disc me-2"></i>Gestionar Discos
                     </h5>
                     <p class="card-text">Añadir, editar y administrar discos</p>
-                    <a href="{% url 'admin:tasks_disco_changelist' %}" class="btn btn-light">
-                        <i class="fas fa-cog me-1"></i>Administrar Discos
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'crear_disco' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i>Nuevo
+                        </a>
+                        <a href="{% url 'admin:tasks_disco_changelist' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-list me-1"></i>Listar
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-6 mb-3">
+        <div class="col-md-4 mb-3">
             <div class="card bg-info text-white">
                 <div class="card-body">
                     <h5 class="card-title">
                         <i class="fas fa-guitar me-2"></i>Gestionar Instrumentos
                     </h5>
                     <p class="card-text">Añadir, editar y administrar instrumentos</p>
-                    <a href="{% url 'admin:tasks_instrumento_changelist' %}" class="btn btn-light">
-                        <i class="fas fa-cog me-1"></i>Administrar Instrumentos
-                    </a>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'crear_instrumento' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus me-1"></i>Nuevo
+                        </a>
+                        <a href="{% url 'admin:tasks_instrumento_changelist' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-list me-1"></i>Listar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-boxes me-2"></i>Inventario
+                    </h5>
+                    <p class="card-text">Gestionar stock y sucursales</p>
+                    <div class="d-flex gap-2">
+                        <a href="{% url 'admin:tasks_inventario_changelist' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-warehouse me-1"></i>Stock
+                        </a>
+                        <a href="{% url 'admin:tasks_sucursal_changelist' %}" class="btn btn-light btn-sm">
+                            <i class="fas fa-store me-1"></i>Sucursales
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,6 +97,15 @@
                                 {% else %}
                                     <span class="badge bg-danger">Inactivo</span>
                                 {% endif %}
+                                <br>
+                                <div class="mt-2 d-flex gap-1">
+                                    <a href="{% url 'editar_disco' disco.id %}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'eliminar_disco' disco.id %}" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}
@@ -112,6 +149,15 @@
                                 {% else %}
                                     <span class="badge bg-danger">Inactivo</span>
                                 {% endif %}
+                                <br>
+                                <div class="mt-2 d-flex gap-1">
+                                    <a href="{% url 'editar_instrumento' instrumento.id %}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'eliminar_instrumento' instrumento.id %}" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                         {% endfor %}

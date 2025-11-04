@@ -96,6 +96,7 @@
         border-radius: 10px;
         padding: 12px 15px;
         font-size: 1rem;
+        transition: all 0.3s ease;
     }
     
     .form-control:focus {
@@ -105,10 +106,23 @@
         box-shadow: 0 0 0 0.2rem rgba(0, 212, 170, 0.25);
     }
     
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+    
     .form-label {
         color: var(--text-light);
         font-weight: 600;
         margin-bottom: 8px;
+    }
+    
+    .form-text {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    
+    .text-danger {
+        color: var(--accent-color) !important;
     }
 </style>
 {% endblock %}

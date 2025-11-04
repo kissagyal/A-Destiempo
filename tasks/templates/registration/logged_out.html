@@ -1,0 +1,35 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Sesión Cerrada - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="product-detail text-center">
+                <div class="mb-4">
+                    <i class="fas fa-sign-out-alt fa-5x text-gradient"></i>
+                </div>
+                
+                <h2 class="text-gradient mb-3">
+                    ¡Hasta luego!
+                </h2>
+                
+                <p class="text-muted mb-4">
+                    Has cerrado sesión exitosamente. Gracias por visitar A Destiempo.
+                </p>
+                
+                <div class="d-flex gap-3 justify-content-center">
+                    <a href="{% url 'admin:login' %}" class="btn btn-primary">
+                        <i class="fas fa-sign-in-alt me-2"></i>Iniciar Sesión
+                    </a>
+                    <a href="{% url 'inicio' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-home me-2"></i>Ir al Inicio
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

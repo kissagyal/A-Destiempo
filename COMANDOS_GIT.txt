@@ -1,0 +1,61 @@
+═══════════════════════════════════════════════════════════════
+  COMANDOS PARA SUBIR EL PROYECTO A GITHUB
+═══════════════════════════════════════════════════════════════
+
+1️⃣ VERIFICAR ESTADO ACTUAL
+   git status
+
+2️⃣ AGREGAR ARCHIVOS IMPORTANTES
+   git add .gitignore
+   git add README.md
+   git add SETUP_DATABASE.md
+   git add GUIA_INSTALACION_INSTITUTO.md
+   git add EXPORTAR_DATOS.md
+   git add RESUMEN_PERMISOS.md
+   git add CHECKLIST_INSTITUTO.md
+   git add INSTRUCCIONES_RAPIDAS.txt
+   git add requirements.txt
+   git add exportar_datos.py
+
+3️⃣ AGREGAR CÓDIGO DEL PROYECTO
+   git add Destiempo/
+   git add tasks/
+   git add static/
+   git add manage.py
+
+4️⃣ HACER COMMIT
+   git commit -m "feat: Proyecto completo A Destiempo - E-commerce de música e instrumentos
+
+   - Sistema de inventario multi-sucursal
+   - Roles de usuario (Cliente/Vendedor)
+   - CRUDs completos para vendedores
+   - Panel de administración
+   - Catálogo de discos e instrumentos
+   - Sistema de carrito y checkout
+   - Fixtures de datos de ejemplo
+   - Documentación completa
+   - Migraciones de base de datos"
+
+5️⃣ SUBIR A GITHUB
+   git push origin main
+
+═══════════════════════════════════════════════════════════════
+
+O TODO EN UNO (más rápido):
+
+   git add .
+   git commit -m "feat: Proyecto completo A Destiempo"
+   git push origin main
+
+═══════════════════════════════════════════════════════════════
+
+⚠️ NOTA: El .gitignore ya está configurado para ignorar:
+   - db.sqlite3
+   - __pycache__/
+   - venv/
+   - *.pyc
+   - media/
+   - db.json
+
+═══════════════════════════════════════════════════════════════
+

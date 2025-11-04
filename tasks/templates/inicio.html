@@ -27,14 +27,14 @@
             </div>
             <div class="col-lg-6">
                 <div class="text-center">
-                    <i class="fas fa-music" style="font-size: 15rem; color: var(--primary-color); opacity: 0.1;"></i>
+                    <img src="{% static 'images/logo.png' %}" class="logo-watermark" alt="A Destiempo">
                 </div>
             </div>
         </div>
     </div>
 </section>
 
-<!-- Discos Destacados -->
+<!-- Discos Destacados (para todos) -->
 {% if discos_destacados %}
 <section class="py-5">
     <div class="container">
@@ -165,4 +165,5 @@
         </div>
     </div>
 </section>
+{% endif %}
 {% endblock %}
