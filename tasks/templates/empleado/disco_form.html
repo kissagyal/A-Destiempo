@@ -17,8 +17,41 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="product-detail">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" id="disco-form">
                     {% csrf_token %}
+                    
+                    <!-- Búsqueda de Metadatos -->
+                    <div class="mb-4 p-3" style="background: rgba(0, 212, 170, 0.05); border: 1px solid var(--primary-color); border-radius: 12px;">
+                        <h5 class="text-gradient mb-3">
+                            <i class="fas fa-search me-2"></i>Buscar Metadatos del Disco
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-6 mb-2">
+                                <label for="buscar-titulo" class="form-label">Título del Disco</label>
+                                <input type="text" class="form-control" id="buscar-titulo" 
+                                       placeholder="Ej: Abbey Road">
+                            </div>
+                            <div class="col-md-6 mb-2">
+                                <label for="buscar-artista" class="form-label">Artista (opcional)</label>
+                                <input type="text" class="form-control" id="buscar-artista" 
+                                       placeholder="Ej: The Beatles">
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary mt-2" id="btn-buscar-metadatos">
+                            <i class="fas fa-search me-2"></i>Buscar en Internet
+                        </button>
+                        
+                        <!-- Resultados de búsqueda -->
+                        <div id="resultados-metadatos" class="mt-3" style="display: none;">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <span id="resultados-count"></span> resultados encontrados
+                            </div>
+                            <div id="lista-resultados" class="row g-3"></div>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="cover_art_url" id="cover_art_url" value="">
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -29,11 +62,30 @@
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label for="{{ form.artista.id_for_label }}" class="form-label">Artista *</label>
+                            <label for="{{ form.artista.id_for_label }}" class="form-label">Artista Existente</label>
                             {{ form.artista }}
                             {% if form.artista.errors %}
                                 <div class="text-danger small mt-1">{{ form.artista.errors }}</div>
                             {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label for="{{ form.nuevo_artista.id_for_label }}" class="form-label">
+                                {{ form.nuevo_artista.label }}
+                            </label>
+                            {{ form.nuevo_artista }}
+                            {% if form.nuevo_artista.help_text %}
+                                <small class="form-text text-muted">{{ form.nuevo_artista.help_text }}</small>
+                            {% endif %}
+                            {% if form.nuevo_artista.errors %}
+                                <div class="text-danger small mt-1">{{ form.nuevo_artista.errors }}</div>
+                            {% endif %}
+                            <div id="artista-corregido" class="alert alert-info mt-2" style="display:none;">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>Nombre corregido:</strong> <span id="nombre-corregido-text"></span>
+                            </div>
                         </div>
                     </div>
 
@@ -75,11 +127,16 @@
                             {% if form.portada.errors %}
                                 <div class="text-danger small mt-1">{{ form.portada.errors }}</div>
                             {% endif %}
-                            {% if disco and disco.portada %}
-                                <div class="mt-2">
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Si usaste la búsqueda de metadatos, la portada se descargará automáticamente. 
+                                También puedes subir una imagen cuadrada (mín. 500x500px).
+                            </small>
+                            <div id="preview-portada" class="mt-2">
+                                {% if disco and disco.portada %}
                                     <img src="{{ disco.portada.url }}" alt="Portada actual" class="img-thumbnail" style="max-width: 200px;">
-                                </div>
-                            {% endif %}
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
 
@@ -89,6 +146,55 @@
                         {% if form.descripcion.errors %}
                             <div class="text-danger small mt-1">{{ form.descripcion.errors }}</div>
                         {% endif %}
+                    </div>
+                    
+                    <!-- Stock por Formato -->
+                    <div class="mb-4">
+                        <h5 class="text-gradient mb-3">
+                            <i class="fas fa-boxes me-2"></i>Stock por Formato
+                        </h5>
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.stock_vinilo.id_for_label }}" class="form-label">
+                                    {{ form.stock_vinilo.label }}
+                                </label>
+                                {{ form.stock_vinilo }}
+                                {% if form.stock_vinilo.errors %}
+                                    <div class="text-danger small mt-1">{{ form.stock_vinilo.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.stock_cd.id_for_label }}" class="form-label">
+                                    {{ form.stock_cd.label }}
+                                </label>
+                                {{ form.stock_cd }}
+                                {% if form.stock_cd.errors %}
+                                    <div class="text-danger small mt-1">{{ form.stock_cd.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.stock_digital.id_for_label }}" class="form-label">
+                                    {{ form.stock_digital.label }}
+                                </label>
+                                {{ form.stock_digital }}
+                                {% if form.stock_digital.errors %}
+                                    <div class="text-danger small mt-1">{{ form.stock_digital.errors }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.stock_casete.id_for_label }}" class="form-label">
+                                    {{ form.stock_casete.label }}
+                                </label>
+                                {{ form.stock_casete }}
+                                {% if form.stock_casete.errors %}
+                                    <div class="text-danger small mt-1">{{ form.stock_casete.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Ingresa la cantidad disponible para cada formato. Puedes tener stock en múltiples formatos del mismo disco.
+                        </small>
                     </div>
 
                     <div class="mb-4">
@@ -139,6 +245,255 @@
         color: var(--text-light);
         font-weight: 600;
     }
+    
+    .alert-info {
+        background: rgba(0, 212, 170, 0.1);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
 </style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const nuevoArtistaInput = document.getElementById('id_nuevo_artista');
+    const artistaSelect = document.getElementById('id_artista');
+    const artistaCorregidoDiv = document.getElementById('artista-corregido');
+    const nombreCorregidoText = document.getElementById('nombre-corregido-text');
+    
+    // Validación de imagen cuadrada
+    const portadaInput = document.getElementById('id_portada');
+    if (portadaInput) {
+        portadaInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const img = new Image();
+                img.onload = function() {
+                    const width = this.width;
+                    const height = this.height;
+                    const aspectRatio = width / height;
+                    
+                    if (width < 500 || height < 500) {
+                        alert(`La imagen debe tener al menos 500x500 píxeles. Tu imagen es ${width}x${height} píxeles.`);
+                        portadaInput.value = '';
+                        return;
+                    }
+                    
+                    if (aspectRatio < 0.95 || aspectRatio > 1.05) {
+                        alert(`La imagen debe ser cuadrada. Tu imagen es ${width}x${height} píxeles (ratio: ${aspectRatio.toFixed(2)}).`);
+                        portadaInput.value = '';
+                        return;
+                    }
+                };
+                img.onerror = function() {
+                    alert('El archivo no es una imagen válida.');
+                    portadaInput.value = '';
+                };
+                img.src = URL.createObjectURL(file);
+            }
+        });
+    }
+    
+    // Sincronizar campos de artista
+    if (nuevoArtistaInput && artistaSelect) {
+        nuevoArtistaInput.addEventListener('blur', function() {
+            const nombre = this.value.trim();
+            if (nombre.length >= 2) {
+                const nombreCorregido = nombre.replace(/\s+/g, ' ').trim();
+                if (nombreCorregido !== nombre) {
+                    nombreCorregidoText.textContent = nombreCorregido;
+                    artistaCorregidoDiv.style.display = 'block';
+                } else {
+                    artistaCorregidoDiv.style.display = 'none';
+                }
+            }
+        });
+        
+        artistaSelect.addEventListener('change', function() {
+            if (this.value) {
+                nuevoArtistaInput.value = '';
+                artistaCorregidoDiv.style.display = 'none';
+            }
+        });
+        
+        nuevoArtistaInput.addEventListener('input', function() {
+            if (this.value) {
+                artistaSelect.value = '';
+            }
+        });
+    }
+    
+    // Búsqueda de metadatos
+    const btnBuscarMetadatos = document.getElementById('btn-buscar-metadatos');
+    const buscarTitulo = document.getElementById('buscar-titulo');
+    const buscarArtista = document.getElementById('buscar-artista');
+    const resultadosMetadatos = document.getElementById('resultados-metadatos');
+    const listaResultados = document.getElementById('lista-resultados');
+    const resultadosCount = document.getElementById('resultados-count');
+    const coverArtUrl = document.getElementById('cover_art_url');
+    
+    if (btnBuscarMetadatos) {
+        btnBuscarMetadatos.addEventListener('click', function() {
+            const titulo = buscarTitulo.value.trim();
+            const artista = buscarArtista.value.trim();
+            
+            if (!titulo) {
+                alert('Por favor ingresa el título del disco');
+                return;
+            }
+            
+            // Mostrar loading
+            btnBuscarMetadatos.disabled = true;
+            btnBuscarMetadatos.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Buscando...';
+            listaResultados.innerHTML = '<div class="col-12"><div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p class="mt-2">Buscando metadatos...</p></div></div>';
+            resultadosMetadatos.style.display = 'block';
+            
+            // Llamar a la API
+            const url = `{% url 'buscar_metadatos' %}?titulo=${encodeURIComponent(titulo)}${artista ? '&artista=' + encodeURIComponent(artista) : ''}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    btnBuscarMetadatos.disabled = false;
+                    btnBuscarMetadatos.innerHTML = '<i class="fas fa-search me-2"></i>Buscar en Internet';
+                    
+                    if (data.success && data.resultados && data.resultados.length > 0) {
+                        resultadosCount.textContent = `${data.total} resultado(s) encontrado(s)`;
+                        listaResultados.innerHTML = '';
+                        
+                        data.resultados.forEach((resultado, index) => {
+                            const card = document.createElement('div');
+                            card.className = 'col-md-6';
+                            card.innerHTML = `
+                                <div class="card h-100" style="border: 2px solid var(--border-color);">
+                                    <div class="card-body">
+                                        ${resultado.cover_art_url ? `
+                                            <div class="text-center mb-3">
+                                                <img src="${resultado.cover_art_url}" 
+                                                     class="img-fluid rounded" 
+                                                     style="max-height: 200px; width: auto; max-width: 100%; object-fit: cover;"
+                                                     alt="${resultado.titulo}"
+                                                     loading="lazy"
+                                                     onerror="this.onerror=null; this.src=''; this.parentElement.innerHTML='<div style=\\'height: 200px; background: var(--dark-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center;\\'><i class=\\'fas fa-compact-disc fa-4x text-muted\\'></i></div>'">
+                                            </div>
+                                        ` : `
+                                            <div class="text-center mb-3" style="height: 200px; background: var(--dark-bg); border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+                                                <i class="fas fa-compact-disc fa-4x text-muted"></i>
+                                            </div>
+                                        `}
+                                        <h6 class="card-title text-light">${resultado.titulo_completo || resultado.titulo}</h6>
+                                        <p class="card-text text-primary fw-bold">${resultado.artista}</p>
+                                        <div class="mb-2">
+                                            ${resultado.año ? `<span class="badge bg-secondary me-1"><i class="fas fa-calendar me-1"></i>${resultado.año}</span>` : ''}
+                                            ${resultado.version ? `<span class="badge bg-warning text-dark me-1"><i class="fas fa-star me-1"></i>${resultado.version}</span>` : ''}
+                                            ${resultado.edicion ? `<span class="badge bg-info me-1">${resultado.edicion}</span>` : ''}
+                                            ${resultado.generos && resultado.generos.length > 0 ? resultado.generos.map(g => `<span class="badge bg-secondary me-1">${g}</span>`).join('') : ''}
+                                        </div>
+                                        ${resultado.tags && resultado.tags.length > 0 ? `
+                                            <div class="mb-2">
+                                                <small class="text-muted">
+                                                    ${resultado.tags.map(t => `<span class="badge bg-dark me-1">${t}</span>`).join('')}
+                                                </small>
+                                            </div>
+                                        ` : ''}
+                                        <button type="button" class="btn btn-primary btn-sm w-100 usar-metadatos-btn" 
+                                                data-index="${index}"
+                                                data-titulo="${resultado.titulo}"
+                                                data-titulo-completo="${resultado.titulo_completo || resultado.titulo}"
+                                                data-artista="${resultado.artista}"
+                                                data-artistas="${JSON.stringify(resultado.artistas_lista)}"
+                                                data-año="${resultado.año || ''}"
+                                                data-generos="${JSON.stringify(resultado.generos)}"
+                                                data-cover="${resultado.cover_art_url || ''}"
+                                                data-version="${resultado.version || ''}"
+                                                data-edicion="${resultado.edicion || ''}">
+                                            <i class="fas fa-check me-2"></i>Usar este
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                            listaResultados.appendChild(card);
+                        });
+                        
+                        // Agregar event listeners a los botones
+                        document.querySelectorAll('.usar-metadatos-btn').forEach(btn => {
+                            btn.addEventListener('click', function() {
+                                const titulo = this.getAttribute('data-titulo');
+                                const tituloCompleto = this.getAttribute('data-titulo-completo') || titulo;
+                                const artista = this.getAttribute('data-artista');
+                                const año = this.getAttribute('data-año');
+                                const generos = JSON.parse(this.getAttribute('data-generos'));
+                                const cover = this.getAttribute('data-cover');
+                                const version = this.getAttribute('data-version');
+                                const edicion = this.getAttribute('data-edicion');
+                                
+                                // Llenar formulario
+                                document.getElementById('{{ form.titulo.id_for_label }}').value = titulo;
+                                
+                                // Si hay artista nuevo, llenar el campo
+                                if (artista && !document.getElementById('{{ form.artista.id_for_label }}').value) {
+                                    document.getElementById('{{ form.nuevo_artista.id_for_label }}').value = artista;
+                                }
+                                
+                                // Año
+                                if (año) {
+                                    document.getElementById('{{ form.año_lanzamiento.id_for_label }}').value = año;
+                                }
+                                
+                                // Agregar información de versión/edición a la descripción si existe
+                                const descripcionField = document.getElementById('{{ form.descripcion.id_for_label }}');
+                                if (descripcionField && (version || edicion)) {
+                                    let descText = descripcionField.value.trim();
+                                    if (descText) descText += '\n\n';
+                                    if (version) descText += `Edición: ${version}`;
+                                    if (edicion) descText += ` - ${edicion}`;
+                                    descripcionField.value = descText;
+                                }
+                                
+                                // Guardar URL de portada
+                                if (cover) {
+                                    coverArtUrl.value = cover;
+                                    // Mostrar preview
+                                    const preview = document.getElementById('preview-portada');
+                                    if (preview) {
+                                        preview.innerHTML = `
+                                            <div class="alert alert-success small">
+                                                <i class="fas fa-check-circle me-2"></i>Portada encontrada
+                                            </div>
+                                            <img src="${cover}" class="img-thumbnail mt-2" style="max-width: 200px;" alt="Preview" 
+                                                 onerror="this.parentElement.innerHTML='<div class=\\'alert alert-warning small\\'>Error al cargar portada</div>'">
+                                        `;
+                                    }
+                                } else {
+                                    const preview = document.getElementById('preview-portada');
+                                    if (preview) {
+                                        preview.innerHTML = `
+                                            <div class="alert alert-info small">
+                                                <i class="fas fa-info-circle me-2"></i>No se encontró portada. Puedes subir una manualmente.
+                                            </div>
+                                        `;
+                                    }
+                                }
+                                
+                                // Scroll al formulario
+                                document.getElementById('{{ form.titulo.id_for_label }}').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            });
+                        });
+                    } else {
+                        resultadosCount.textContent = 'No se encontraron resultados';
+                        listaResultados.innerHTML = '<div class="col-12"><div class="alert alert-warning">No se encontraron resultados. Puedes ingresar los datos manualmente.</div></div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    btnBuscarMetadatos.disabled = false;
+                    btnBuscarMetadatos.innerHTML = '<i class="fas fa-search me-2"></i>Buscar en Internet';
+                    alert('Error al buscar metadatos. Por favor intenta de nuevo.');
+                });
+        });
+    }
+});
+</script>
 {% endblock %}
 

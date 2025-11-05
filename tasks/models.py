@@ -2,7 +2,9 @@ from django.db import models
 from django.contrib.auth.models import User
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db.models import Sum
+from django.core.exceptions import ValidationError
 import os
+from datetime import datetime
 
 class PerfilUsuario(models.Model):
     TIPOS_USUARIO = [
@@ -24,6 +26,7 @@ class PerfilUsuario(models.Model):
         return f"{self.user.username} - {self.tipo_usuario}"
 
 class Genero(models.Model):
+    """Género musical"""
     nombre = models.CharField(max_length=50, unique=True)
     
     class Meta:
@@ -59,7 +62,12 @@ class Disco(models.Model):
     titulo = models.CharField(max_length=200)
     artista = models.ForeignKey(Artista, on_delete=models.CASCADE, related_name='discos')
     genero = models.ForeignKey(Genero, on_delete=models.SET_NULL, null=True, blank=True)
-    año_lanzamiento = models.IntegerField(validators=[MinValueValidator(1900), MaxValueValidator(2025)])
+    año_lanzamiento = models.IntegerField(
+        validators=[
+            MinValueValidator(1950, message='El año debe ser mayor o igual a 1950'),
+            MaxValueValidator(datetime.now().year, message=f'El año no puede ser mayor a {datetime.now().year}')
+        ]
+    )
     formato = models.CharField(max_length=10, choices=FORMATOS)
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
@@ -163,9 +171,12 @@ class Sucursal(models.Model):
         return self.nombre
 
 class Inventario(models.Model):
-    """Inventario por producto y sucursal"""
+    """Inventario por producto, formato (para discos) y sucursal"""
     producto_disco = models.ForeignKey(Disco, on_delete=models.CASCADE, null=True, blank=True, related_name='inventario_disco')
     producto_instrumento = models.ForeignKey(Instrumento, on_delete=models.CASCADE, null=True, blank=True, related_name='inventario_instrumento')
+    # Para discos: formato específico (vinilo, cd, digital, casete)
+    # Para instrumentos: siempre null
+    formato_disco = models.CharField(max_length=10, choices=Disco.FORMATOS, null=True, blank=True)
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
     stock_disponible = models.PositiveIntegerField(default=0)
     stock_reservado = models.PositiveIntegerField(default=0)
@@ -176,7 +187,7 @@ class Inventario(models.Model):
         verbose_name = 'Inventario'
         verbose_name_plural = 'Inventarios'
         unique_together = [
-            ['producto_disco', 'sucursal'],
+            ['producto_disco', 'formato_disco', 'sucursal'],
             ['producto_instrumento', 'sucursal']
         ]
         constraints = [
@@ -184,6 +195,11 @@ class Inventario(models.Model):
                 check=models.Q(producto_disco__isnull=False, producto_instrumento__isnull=True) |
                       models.Q(producto_disco__isnull=True, producto_instrumento__isnull=False),
                 name='inventario_un_solo_producto'
+            ),
+            models.CheckConstraint(
+                check=models.Q(producto_disco__isnull=False, formato_disco__isnull=False) |
+                      models.Q(producto_disco__isnull=True),
+                name='formato_solo_para_discos'
             )
         ]
     
@@ -245,11 +261,13 @@ class InventarioMovimiento(models.Model):
 # MÉTODOS DE STOCK PARA COMPATIBILIDAD
 # ===========================================
 
-def get_stock_total_disco(disco):
-    """Obtiene el stock total de un disco en todas las sucursales"""
-    return Inventario.objects.filter(
-        producto_disco=disco
-    ).aggregate(total=Sum('stock_disponible'))['total'] or 0
+def get_stock_total_disco(disco, formato=None):
+    """Obtiene el stock total de un disco en todas las sucursales
+    Si se especifica formato, retorna solo el stock de ese formato"""
+    query = Inventario.objects.filter(producto_disco=disco)
+    if formato:
+        query = query.filter(formato_disco=formato)
+    return query.aggregate(total=Sum('stock_disponible'))['total'] or 0
 
 def get_stock_total_instrumento(instrumento):
     """Obtiene el stock total de un instrumento en todas las sucursales"""

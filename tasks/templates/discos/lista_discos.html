@@ -73,51 +73,68 @@
     </div>
 
     <!-- Resultados -->
-    <div class="row">
+    <div class="row g-4">
         {% if discos %}
             {% for disco in discos %}
-            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
-                <div class="card h-100 fade-in-up">
-                    <a href="{% url 'detalle_disco' disco.id %}" class="text-decoration-none">
-                        {% if disco.portada %}
-                            <img src="{{ disco.portada.url }}" class="card-img-top" alt="{{ disco.titulo }}">
-                        {% else %}
-                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 250px;">
-                                <i class="fas fa-compact-disc fa-4x text-muted"></i>
-                            </div>
-                        {% endif %}
-                    </a>
-                    
-                    <div class="card-body d-flex flex-column">
-                        <h6 class="card-title text-light">{{ disco.titulo }}</h6>
-                        <p class="card-text text-primary fw-bold mb-2">{{ disco.artista.nombre }}</p>
-                        
-                        <div class="mb-2">
-                            {% if disco.genero %}
-                                <span class="badge bg-secondary me-1">{{ disco.genero.nombre }}</span>
-                            {% endif %}
-                            <span class="badge bg-info">{{ disco.get_formato_display }}</span>
-                        </div>
-                        
-                        <p class="card-text text-muted small mb-3">
-                            <i class="fas fa-calendar me-1"></i>{{ disco.año_lanzamiento }}
-                            {% if disco.tiene_stock %}
-                                <span class="text-success ms-2">
-                                    <i class="fas fa-check-circle me-1"></i>Disponible
-                                </span>
+            <div class="col-lg-3 col-md-4 col-sm-6">
+                <div class="disco-card-wrapper">
+                    <div class="card disco-card h-100">
+                        <a href="{% url 'detalle_disco' disco.id %}" class="disco-image-link">
+                            {% if disco.portada %}
+                                <div class="disco-image-container">
+                                    <img src="{{ disco.portada.url }}" class="card-img-top disco-image" alt="{{ disco.titulo }}">
+                                    <div class="disco-overlay">
+                                        <span class="disco-overlay-badge">
+                                            <i class="fas fa-eye me-1"></i>Ver Detalles
+                                        </span>
+                                    </div>
+                                </div>
                             {% else %}
-                                <span class="text-danger ms-2">
-                                    <i class="fas fa-times-circle me-1"></i>Agotado
-                                </span>
+                                <div class="disco-image-container">
+                                    <div class="disco-image-placeholder">
+                                        <i class="fas fa-compact-disc"></i>
+                                    </div>
+                                    <div class="disco-overlay">
+                                        <span class="disco-overlay-badge">
+                                            <i class="fas fa-eye me-1"></i>Ver Detalles
+                                        </span>
+                                    </div>
+                                </div>
                             {% endif %}
-                        </p>
+                        </a>
                         
-                        <div class="mt-auto">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="price fs-5">${{ disco.precio|floatformat:2 }}</span>
-                                <a href="{% url 'detalle_disco' disco.id %}" class="btn btn-outline-primary btn-sm">
-                                    Ver <i class="fas fa-eye ms-1"></i>
-                                </a>
+                        <div class="card-body disco-card-body">
+                            <h6 class="disco-title">{{ disco.titulo|truncatechars:35 }}</h6>
+                            <p class="disco-artist">{{ disco.artista.nombre|truncatechars:30 }}</p>
+                            
+                            <div class="disco-meta">
+                                <div class="disco-badges">
+                                    {% if disco.genero %}
+                                        <span class="badge disco-badge-genre">{{ disco.genero.nombre }}</span>
+                                    {% endif %}
+                                    <span class="badge disco-badge-format">{{ disco.get_formato_display }}</span>
+                                </div>
+                                <div class="disco-year">
+                                    <i class="fas fa-calendar-alt me-1"></i>{{ disco.año_lanzamiento }}
+                                </div>
+                            </div>
+                            
+                            <div class="disco-footer">
+                                <div class="disco-price">
+                                    <span class="price-symbol">$</span>
+                                    <span class="price-amount">{{ disco.precio|floatformat:0 }}</span>
+                                </div>
+                                <div class="disco-availability">
+                                    {% if disco.tiene_stock %}
+                                        <span class="availability-badge available">
+                                            <i class="fas fa-check-circle me-1"></i>Disponible
+                                        </span>
+                                    {% else %}
+                                        <span class="availability-badge unavailable">
+                                            <i class="fas fa-times-circle me-1"></i>Agotado
+                                        </span>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                     </div>

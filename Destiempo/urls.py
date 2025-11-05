@@ -30,6 +30,7 @@ urlpatterns = [
     path('instrumento/<int:instrumento_id>/', views.detalle_instrumento, name='detalle_instrumento'),
     path('panel-empleado/', views.panel_empleado, name='panel_empleado'),
     # CRUDs para vendedor
+    path('panel-empleado/buscar-metadatos/', views.buscar_metadatos_ajax, name='buscar_metadatos'),
     path('panel-empleado/disco/crear/', views.crear_disco, name='crear_disco'),
     path('panel-empleado/disco/<int:disco_id>/editar/', views.editar_disco, name='editar_disco'),
     path('panel-empleado/disco/<int:disco_id>/eliminar/', views.eliminar_disco, name='eliminar_disco'),

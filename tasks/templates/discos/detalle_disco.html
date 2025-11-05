@@ -44,20 +44,28 @@
                         {% endif %}
                     </div>
                     <div class="col-md-6">
-                        <p class="mb-2"><strong>Stock:</strong> 
-                            {% if disco.tiene_stock %}
-                                <span class="text-success">
-                                    <i class="fas fa-check-circle me-1"></i>{{ disco.stock_total }} disponibles
-                                </span>
-                            {% else %}
-                                <span class="text-danger">
-                                    <i class="fas fa-times-circle me-1"></i>Agotado
-                                </span>
-                            {% endif %}
-                        </p>
-                        <p class="mb-0"><strong>Precio:</strong> 
+                        <p class="mb-2"><strong>Precio:</strong> 
                             <span class="price fs-4">${{ disco.precio|floatformat:2 }}</span>
                         </p>
+                        {% if stock_por_formato %}
+                        <div class="mb-3">
+                            <strong class="d-block mb-2">Disponibilidad por Formato:</strong>
+                            <div class="d-flex flex-wrap gap-2">
+                                {% for formato, stock in stock_por_formato.items %}
+                                <span class="badge bg-success" style="font-size: 0.9rem;">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    {{ formato|capfirst }}: {{ stock }} unidades
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="mb-2"><strong>Stock:</strong> 
+                            <span class="text-danger">
+                                <i class="fas fa-times-circle me-1"></i>Agotado
+                            </span>
+                        </p>
+                        {% endif %}
                     </div>
                 </div>
                 

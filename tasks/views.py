@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_protect
 from .models import Disco, Instrumento, Genero, CategoriaInstrumento, PerfilUsuario, Sucursal, Inventario, Artista
 from .forms import SignUpForm, DiscoForm, InstrumentoForm
 from .decorators import login_required_with_message, empleado_required
+from .metadata_service import buscar_metadatos_disco, descargar_portada
 
 def es_empleado(user):
     if user.is_authenticated:
@@ -60,6 +61,21 @@ def login_view(request):
 
 def inicio(request):
     """Vista principal que muestra los productos destacados (para todos)"""
+    # Verificar autenticación válida
+    if request.user.is_authenticated:
+        try:
+            # Verificar que el usuario existe y tiene perfil
+            request.user.refresh_from_db()
+            perfil = getattr(request.user, 'perfilusuario', None)
+            if not perfil:
+                # Si no tiene perfil, cerrar sesión
+                from django.contrib.auth import logout
+                logout(request)
+        except Exception:
+            # Si hay error, cerrar sesión
+            from django.contrib.auth import logout
+            logout(request)
+    
     discos_destacados = Disco.objects.filter(activo=True)[:6]
     instrumentos_destacados = Instrumento.objects.filter(activo=True)[:6]
 
@@ -147,6 +163,18 @@ def detalle_disco(request, disco_id):
     """Vista de detalle de un disco específico"""
     disco = get_object_or_404(Disco, id=disco_id, activo=True)
     
+    # Obtener stock por formato
+    from .models import Inventario, Sucursal, get_stock_total_disco
+    stock_por_formato = {}
+    try:
+        sucursal_principal = Sucursal.objects.get(nombre='Principal')
+        for formato in ['vinilo', 'cd', 'digital', 'casete']:
+            stock = get_stock_total_disco(disco, formato=formato)
+            if stock > 0:
+                stock_por_formato[formato] = stock
+    except Sucursal.DoesNotExist:
+        pass
+    
     # Discos relacionados del mismo artista
     discos_relacionados = Disco.objects.filter(
         artista=disco.artista,
@@ -155,6 +183,7 @@ def detalle_disco(request, disco_id):
     
     context = {
         'disco': disco,
+        'stock_por_formato': stock_por_formato,
         'discos_relacionados': discos_relacionados,
     }
     return render(request, 'discos/detalle_disco.html', context)
@@ -268,12 +297,60 @@ def checkout(request):
 # ===========================================
 
 @empleado_required
+def buscar_metadatos_ajax(request):
+    """Vista AJAX para buscar metadatos de discos"""
+    if request.method == 'GET':
+        titulo = request.GET.get('titulo', '').strip()
+        artista = request.GET.get('artista', '').strip()
+        
+        if not titulo:
+            return JsonResponse({'error': 'Título requerido'}, status=400)
+        
+        # Buscar metadatos
+        resultados = buscar_metadatos_disco(titulo, artista if artista else None)
+        
+        # Formatear resultados para JSON
+        resultados_formateados = []
+        for resultado in resultados:
+            resultados_formateados.append({
+                'titulo': resultado.get('titulo', ''),
+                'titulo_completo': resultado.get('titulo_completo', resultado.get('titulo', '')),
+                'artista': resultado.get('artista', ''),
+                'artistas_lista': resultado.get('artistas_lista', []),
+                'año': resultado.get('año'),
+                'fecha': resultado.get('fecha', ''),
+                'generos': resultado.get('generos', []),
+                'cover_art_url': resultado.get('cover_art_url', ''),
+                'musicbrainz_id': resultado.get('musicbrainz_id', ''),
+                'version': resultado.get('version', ''),
+                'edicion': resultado.get('edicion', ''),
+                'tags': resultado.get('tags', []),
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'resultados': resultados_formateados,
+            'total': len(resultados_formateados)
+        })
+    
+    return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+@empleado_required
 def crear_disco(request):
     """Crear nuevo disco"""
     if request.method == 'POST':
         form = DiscoForm(request.POST, request.FILES)
         if form.is_valid():
             disco = form.save()
+            
+            # Si se proporcionó una URL de portada, descargarla
+            cover_url = request.POST.get('cover_art_url', '')
+            if cover_url and not disco.portada:
+                saved_path = descargar_portada(cover_url, disco.titulo, disco.artista.nombre)
+                if saved_path:
+                    disco.portada = saved_path
+                    disco.save()
+            
             messages.success(request, f'¡Disco "{disco.titulo}" creado exitosamente!')
             return redirect('panel_empleado')
     else:
@@ -290,6 +367,15 @@ def editar_disco(request, disco_id):
         form = DiscoForm(request.POST, request.FILES, instance=disco)
         if form.is_valid():
             disco = form.save()
+            
+            # Si se proporcionó una URL de portada nueva, descargarla
+            cover_url = request.POST.get('cover_art_url', '')
+            if cover_url and not disco.portada:
+                saved_path = descargar_portada(cover_url, disco.titulo, disco.artista.nombre)
+                if saved_path:
+                    disco.portada = saved_path
+                    disco.save()
+            
             messages.success(request, f'¡Disco "{disco.titulo}" actualizado exitosamente!')
             return redirect('panel_empleado')
     else:

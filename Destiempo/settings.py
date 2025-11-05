@@ -46,6 +46,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'tasks.middleware.SessionCleanupMiddleware',  # Limpiar sesiones inválidas
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -142,3 +143,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 LOGIN_URL = '/accounts/login/'
+
+# Session configuration
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # La sesión expira al cerrar el navegador
+SESSION_COOKIE_AGE = 86400  # 24 horas en segundos (si no se cierra el navegador)
+SESSION_SAVE_EVERY_REQUEST = False  # No guardar sesión en cada request
+SESSION_COOKIE_SECURE = False  # Solo HTTPS en producción
+SESSION_COOKIE_HTTPONLY = True  # Protección XSS
+SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF

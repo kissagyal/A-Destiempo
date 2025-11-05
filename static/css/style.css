@@ -307,3 +307,265 @@ body {
     background: var(--primary-color);
     color: var(--darker-bg);
 }
+
+/* ============================================
+   ESTILOS MEJORADOS PARA VISTA DE DISCOS
+   ============================================ */
+
+/* Contenedor de tarjeta de disco */
+.disco-card-wrapper {
+    height: 100%;
+}
+
+.disco-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.disco-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 32px rgba(0, 212, 170, 0.2);
+    border-color: var(--primary-color);
+}
+
+/* Contenedor de imagen */
+.disco-image-container {
+    position: relative;
+    width: 100%;
+    padding-top: 100%; /* Aspect ratio 1:1 (cuadrado) */
+    overflow: hidden;
+    background: var(--dark-bg);
+}
+
+.disco-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.disco-card:hover .disco-image {
+    transform: scale(1.08);
+}
+
+.disco-image-placeholder {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--dark-bg) 0%, var(--card-bg) 100%);
+    color: var(--text-muted);
+    font-size: 4rem;
+}
+
+.disco-image-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* Overlay en hover */
+.disco-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(4px);
+}
+
+.disco-card:hover .disco-overlay {
+    opacity: 1;
+}
+
+.disco-overlay-badge {
+    background: var(--primary-color);
+    color: var(--darker-bg);
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    transform: translateY(10px);
+    transition: transform 0.3s ease;
+}
+
+.disco-card:hover .disco-overlay-badge {
+    transform: translateY(0);
+}
+
+/* Cuerpo de la tarjeta */
+.disco-card-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.disco-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+    line-height: 1.4;
+    min-height: 2.8rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.disco-artist {
+    font-size: 0.875rem;
+    color: var(--primary-color);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+}
+
+.disco-meta {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.disco-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.disco-badge-genre,
+.disco-badge-format {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 500;
+}
+
+.disco-badge-genre {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+}
+
+.disco-badge-format {
+    background: rgba(0, 212, 170, 0.15);
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+}
+
+.disco-year {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+}
+
+/* Footer de la tarjeta */
+.disco-footer {
+    margin-top: auto;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.disco-price {
+    display: flex;
+    align-items: baseline;
+    gap: 0.25rem;
+}
+
+.price-symbol {
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.price-amount {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1;
+}
+
+.disco-availability {
+    display: flex;
+    align-items: center;
+}
+
+.availability-badge {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.availability-badge.available {
+    background: rgba(29, 185, 84, 0.15);
+    color: var(--secondary-color);
+    border: 1px solid var(--secondary-color);
+}
+
+.availability-badge.unavailable {
+    background: rgba(255, 107, 53, 0.15);
+    color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+}
+
+/* Responsive para vista de discos */
+@media (max-width: 991px) {
+    .disco-title {
+        font-size: 0.95rem;
+        min-height: 2.6rem;
+    }
+    
+    .price-amount {
+        font-size: 1.35rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .disco-card-body {
+        padding: 1rem;
+    }
+    
+    .disco-footer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .disco-price {
+        width: 100%;
+    }
+    
+    .disco-availability {
+        width: 100%;
+    }
+}
