@@ -1,0 +1,128 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Mis Favoritos - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-heart me-2"></i>Mis Favoritos
+            </h1>
+            <p class="text-muted">Tus productos favoritos guardados</p>
+        </div>
+    </div>
+
+    {% if favoritos %}
+    <div class="row g-4">
+        {% for favorito in favoritos %}
+        <div class="col-lg-4 col-md-6">
+            <div class="card h-100">
+                {% if favorito.disco %}
+                    <a href="{% url 'detalle_disco' favorito.disco.id %}" class="text-decoration-none">
+                        {% if favorito.disco.portada %}
+                            <img src="{{ favorito.disco.portada.url }}" class="card-img-top" alt="{{ favorito.disco.titulo }}" style="height: 300px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 300px;">
+                                <i class="fas fa-compact-disc fa-4x text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="card-body">
+                        <h5 class="card-title text-light">{{ favorito.disco.titulo }}</h5>
+                        <p class="card-text text-primary fw-bold">{{ favorito.disco.artista.nombre }}</p>
+                        <p class="card-text text-muted small">
+                            <i class="fas fa-calendar me-1"></i>{{ favorito.disco.año_lanzamiento }}
+                            <span class="badge bg-secondary ms-2">{{ favorito.disco.get_formato_display }}</span>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="price">${{ favorito.disco.precio|floatformat:2 }}</span>
+                            <form method="post" action="{% url 'quitar_favorito_disco' favorito.disco.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-heart-broken me-1"></i>Quitar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% elif favorito.instrumento %}
+                    <a href="{% url 'detalle_instrumento' favorito.instrumento.id %}" class="text-decoration-none">
+                        {% if favorito.instrumento.imagen_principal %}
+                            <img src="{{ favorito.instrumento.imagen_principal.url }}" class="card-img-top" alt="{{ favorito.instrumento.nombre }}" style="height: 300px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 300px;">
+                                <i class="fas fa-guitar fa-4x text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="card-body">
+                        <h5 class="card-title text-light">{{ favorito.instrumento.nombre }}</h5>
+                        <p class="card-text text-primary fw-bold">{{ favorito.instrumento.marca }}</p>
+                        <p class="card-text text-muted small">
+                            <span class="badge bg-info me-2">{{ favorito.instrumento.categoria.nombre }}</span>
+                            <span class="badge bg-secondary">{{ favorito.instrumento.get_estado_display }}</span>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="price">${{ favorito.instrumento.precio|floatformat:2 }}</span>
+                            <form method="post" action="{% url 'quitar_favorito_instrumento' favorito.instrumento.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-heart-broken me-1"></i>Quitar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% elif favorito.refaccion %}
+                    <a href="{% url 'detalle_refaccion' favorito.refaccion.id %}" class="text-decoration-none">
+                        {% if favorito.refaccion.imagen_principal %}
+                            <img src="{{ favorito.refaccion.imagen_principal.url }}" class="card-img-top" alt="{{ favorito.refaccion.nombre }}" style="height: 300px; object-fit: cover;">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 300px;">
+                                <i class="fas fa-cog fa-4x text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="card-body">
+                        <h5 class="card-title text-light">{{ favorito.refaccion.nombre }}</h5>
+                        <p class="card-text text-primary fw-bold">{{ favorito.refaccion.marca }}</p>
+                        <p class="card-text text-muted small">
+                            <span class="badge bg-info me-2">{{ favorito.refaccion.categoria.nombre }}</span>
+                        </p>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="price">${{ favorito.refaccion.precio|floatformat:2 }}</span>
+                            <form method="post" action="{% url 'quitar_favorito_refaccion' favorito.refaccion.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger btn-sm">
+                                    <i class="fas fa-heart-broken me-1"></i>Quitar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-heart fa-5x text-muted mb-4"></i>
+        <h3 class="text-light mb-3">No tienes favoritos aún</h3>
+        <p class="text-muted mb-4">Agrega productos a tus favoritos para encontrarlos fácilmente más tarde.</p>
+        <a href="{% url 'lista_discos' %}" class="btn btn-primary me-2">
+            <i class="fas fa-compact-disc me-2"></i>Explorar Discos
+        </a>
+        <a href="{% url 'lista_instrumentos' %}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-guitar me-2"></i>Ver Instrumentos
+        </a>
+        <a href="{% url 'lista_refacciones' %}" class="btn btn-outline-primary">
+            <i class="fas fa-cog me-2"></i>Ver Refacciones
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

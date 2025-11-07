@@ -15,12 +15,99 @@
     </div>
 
     <div class="row">
-        <div class="col-12">
+        <div class="col-lg-8">
             <div class="card">
                 <div class="card-body">
                     {% if items %}
-                        <!-- Aquí irían los items del carrito -->
-                        <p class="text-center text-muted">Carrito implementado - items aquí</p>
+                        <div class="table-responsive">
+                            <table class="table table-hover table-dark">
+                                <thead>
+                                    <tr>
+                                        <th class="text-white">Producto</th>
+                                        <th class="text-white">Precio</th>
+                                        <th class="text-white">Cantidad</th>
+                                        <th class="text-white">Subtotal</th>
+                                        <th class="text-white">Acciones</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if item.tipo == 'disco' %}
+                                                    {% if item.producto.portada %}
+                                                        <img src="{{ item.producto.portada.url }}" alt="{{ item.producto.titulo }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                                                    {% else %}
+                                                        <div class="d-flex align-items-center justify-content-center bg-secondary rounded" style="width: 60px; height: 60px; margin-right: 15px;">
+                                                            <i class="fas fa-compact-disc text-muted"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong class="text-white">{{ item.producto.titulo }}</strong>
+                                                        <br>
+                                                        <small class="text-primary">{{ item.producto.artista.nombre }}</small>
+                                                        <br>
+                                                        <small class="text-light">{{ item.producto.get_formato_display }}</small>
+                                                    </div>
+                                                {% elif item.tipo == 'instrumento' %}
+                                                    {% if item.producto.imagen_principal %}
+                                                        <img src="{{ item.producto.imagen_principal.url }}" alt="{{ item.producto.nombre }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                                                    {% else %}
+                                                        <div class="d-flex align-items-center justify-content-center bg-secondary rounded" style="width: 60px; height: 60px; margin-right: 15px;">
+                                                            <i class="fas fa-guitar text-muted"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong class="text-white">{{ item.producto.nombre }}</strong>
+                                                        <br>
+                                                        <small class="text-primary">{{ item.producto.marca }}</small>
+                                                        <br>
+                                                        <small class="text-light">{{ item.producto.categoria.nombre }}</small>
+                                                    </div>
+                                                {% elif item.tipo == 'refaccion' %}
+                                                    {% if item.producto.imagen_principal %}
+                                                        <img src="{{ item.producto.imagen_principal.url }}" alt="{{ item.producto.nombre }}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px; margin-right: 15px;">
+                                                    {% else %}
+                                                        <div class="d-flex align-items-center justify-content-center bg-secondary rounded" style="width: 60px; height: 60px; margin-right: 15px;">
+                                                            <i class="fas fa-cog text-muted"></i>
+                                                        </div>
+                                                    {% endif %}
+                                                    <div>
+                                                        <strong class="text-white">{{ item.producto.nombre }}</strong>
+                                                        <br>
+                                                        <small class="text-primary">{{ item.producto.marca }}</small>
+                                                        <br>
+                                                        <small class="text-light">{{ item.producto.categoria.nombre }}</small>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </td>
+                                        <td class="align-middle text-white">
+                                            <span class="price">${{ item.precio|floatformat:2 }}</span>
+                                        </td>
+                                        <td class="align-middle">
+                                            <form method="post" action="{% url 'actualizar_cantidad_carrito' forloop.counter0 %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <input type="number" name="cantidad" value="{{ item.cantidad }}" min="1" class="form-control form-control-sm" style="width: 80px; display: inline-block;" onchange="this.form.submit()">
+                                            </form>
+                                        </td>
+                                        <td class="align-middle text-white">
+                                            <span class="price">${{ item.subtotal|floatformat:2 }}</span>
+                                        </td>
+                                        <td class="align-middle">
+                                            <form method="post" action="{% url 'eliminar_del_carrito' forloop.counter0 %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('¿Eliminar este item del carrito?')">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
                     {% else %}
                         <div class="text-center py-5">
                             <i class="fas fa-shopping-cart fa-5x text-muted mb-4"></i>
@@ -29,14 +116,51 @@
                             <a href="{% url 'lista_discos' %}" class="btn btn-primary me-3">
                                 <i class="fas fa-compact-disc me-2"></i>Ver Discos
                             </a>
-                            <a href="{% url 'lista_instrumentos' %}" class="btn btn-outline-primary">
+                            <a href="{% url 'lista_instrumentos' %}" class="btn btn-outline-primary me-3">
                                 <i class="fas fa-guitar me-2"></i>Ver Instrumentos
+                            </a>
+                            <a href="{% url 'lista_refacciones' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-cog me-2"></i>Ver Refacciones
                             </a>
                         </div>
                     {% endif %}
                 </div>
             </div>
         </div>
+        
+        {% if items %}
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-body">
+                    <h5 class="card-title mb-4">
+                        <i class="fas fa-receipt me-2"></i>Resumen del Pedido
+                    </h5>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal:</span>
+                        <span class="text-light">${{ subtotal|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">IVA (16%):</span>
+                        <span class="text-light">${{ impuestos|floatformat:2 }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <strong class="text-light">Total:</strong>
+                        <strong class="price fs-4">${{ total|floatformat:2 }}</strong>
+                    </div>
+                    
+                    <a href="{% url 'checkout' %}" class="btn btn-primary w-100 btn-lg">
+                        <i class="fas fa-credit-card me-2"></i>Proceder al Pago
+                    </a>
+                    
+                    <a href="{% url 'inicio' %}" class="btn btn-outline-secondary w-100 mt-2">
+                        <i class="fas fa-arrow-left me-2"></i>Seguir Comprando
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

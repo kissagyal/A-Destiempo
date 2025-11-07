@@ -1,18 +1,18 @@
 {% extends 'base/base.html' %}
 {% load static %}
 
-{% block title %}{{ instrumento.marca }} {{ instrumento.nombre }}{% endblock %}
+{% block title %}{{ refaccion.marca }} {{ refaccion.nombre }}{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-5">
             <div class="product-detail">
-                {% if instrumento.imagen_principal %}
-                    <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top product-image mb-4" alt="{{ instrumento.nombre }}">
+                {% if refaccion.imagen_principal %}
+                    <img src="{{ refaccion.imagen_principal.url }}" class="card-img-top product-image mb-4" alt="{{ refaccion.nombre }}">
                 {% else %}
                     <div class="d-flex align-items-center justify-content-center bg-secondary rounded mb-4" style="height: 400px;">
-                        <i class="fas fa-guitar fa-8x text-muted"></i>
+                        <i class="fas fa-cog fa-8x text-muted"></i>
                     </div>
                 {% endif %}
             </div>
@@ -23,31 +23,28 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
                         <li class="breadcrumb-item"><a href="{% url 'inicio' %}" class="text-muted">Inicio</a></li>
-                        <li class="breadcrumb-item"><a href="{% url 'lista_instrumentos' %}" class="text-muted">Instrumentos</a></li>
-                        <li class="breadcrumb-item active text-light">{{ instrumento.nombre }}</li>
+                        <li class="breadcrumb-item"><a href="{% url 'lista_refacciones' %}" class="text-muted">Refacciones</a></li>
+                        <li class="breadcrumb-item active text-light">{{ refaccion.nombre }}</li>
                     </ol>
                 </nav>
                 
-                <h1 class="display-6 text-gradient mb-3">{{ instrumento.nombre }}</h1>
-                <h3 class="text-primary mb-4">{{ instrumento.marca }}</h3>
-                {% if instrumento.modelo %}
-                    <h5 class="text-muted mb-4">{{ instrumento.modelo }}</h5>
+                <h1 class="display-6 text-gradient mb-3">{{ refaccion.nombre }}</h1>
+                <h3 class="text-primary mb-4">{{ refaccion.marca }}</h3>
+                {% if refaccion.modelo_compatible %}
+                    <h5 class="text-muted mb-4">Compatible con: {{ refaccion.modelo_compatible }}</h5>
                 {% endif %}
                 
                 <div class="row mb-4">
                     <div class="col-md-6">
                         <p class="mb-2"><strong>Categoría:</strong> 
-                            <span class="badge bg-info">{{ instrumento.categoria.nombre }}</span>
-                        </p>
-                        <p class="mb-2"><strong>Estado:</strong> 
-                            <span class="badge bg-secondary">{{ instrumento.get_estado_display }}</span>
+                            <span class="badge bg-info">{{ refaccion.categoria.nombre }}</span>
                         </p>
                     </div>
                     <div class="col-md-6">
                         <p class="mb-2"><strong>Stock:</strong> 
-                            {% if instrumento.tiene_stock %}
+                            {% if refaccion.tiene_stock %}
                                 <span class="text-success">
-                                    <i class="fas fa-check-circle me-1"></i>{{ instrumento.stock_total }} disponibles
+                                    <i class="fas fa-check-circle me-1"></i>{{ refaccion.stock_total }} disponibles
                                 </span>
                             {% else %}
                                 <span class="text-danger">
@@ -56,22 +53,22 @@
                             {% endif %}
                         </p>
                         <p class="mb-0"><strong>Precio:</strong> 
-                            <span class="price fs-4">${{ instrumento.precio|floatformat:2 }}</span>
+                            <span class="price fs-4">${{ refaccion.precio|floatformat:2 }}</span>
                         </p>
                     </div>
                 </div>
                 
-                {% if instrumento.descripcion %}
+                {% if refaccion.descripcion %}
                 <div class="mb-4">
                     <h5>Descripción</h5>
-                    <p class="text-muted">{{ instrumento.descripcion }}</p>
+                    <p class="text-muted">{{ refaccion.descripcion }}</p>
                 </div>
                 {% endif %}
                 
                 <div class="d-flex gap-3">
-                    {% if instrumento.tiene_stock %}
+                    {% if refaccion.tiene_stock %}
                         {% if user.is_authenticated %}
-                            <form method="post" action="{% url 'agregar_carrito_instrumento' instrumento.id %}" class="d-inline">
+                            <form method="post" action="{% url 'agregar_carrito_refaccion' refaccion.id %}" class="d-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="cantidad" value="1">
                                 <button type="submit" class="btn btn-primary btn-lg">
@@ -90,14 +87,14 @@
                     {% endif %}
                     {% if user.is_authenticated %}
                         {% if es_favorito %}
-                            <form method="post" action="{% url 'quitar_favorito_instrumento' instrumento.id %}" class="d-inline">
+                            <form method="post" action="{% url 'quitar_favorito_refaccion' refaccion.id %}" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-outline-danger btn-lg">
                                     <i class="fas fa-heart-broken me-2"></i>Quitar de Favoritos
                                 </button>
                             </form>
                         {% else %}
-                            <form method="post" action="{% url 'agregar_favorito_instrumento' instrumento.id %}" class="d-inline">
+                            <form method="post" action="{% url 'agregar_favorito_refaccion' refaccion.id %}" class="d-inline">
                                 {% csrf_token %}
                                 <button type="submit" class="btn btn-outline-primary btn-lg">
                                     <i class="fas fa-heart me-2"></i>Agregar a Favoritos
@@ -114,34 +111,33 @@
         </div>
     </div>
     
-    <!-- Instrumentos Relacionados -->
-    {% if instrumentos_relacionados %}
+    <!-- Refacciones Relacionadas -->
+    {% if refacciones_relacionadas %}
     <div class="row mt-5">
         <div class="col-12">
             <h4 class="text-gradient mb-4">
-                <i class="fas fa-guitar me-2"></i>Más {{ instrumento.categoria.nombre }}s
+                <i class="fas fa-cog me-2"></i>Más {{ refaccion.categoria.nombre }}s
             </h4>
             
             <div class="row">
-                {% for inst_rel in instrumentos_relacionados %}
+                {% for ref_rel in refacciones_relacionadas %}
                 <div class="col-lg-3 col-md-6 mb-4">
                     <div class="card h-100">
-                        <a href="{% url 'detalle_instrumento' inst_rel.id %}" class="text-decoration-none">
-                            {% if inst_rel.imagen_principal %}
-                                <img src="{{ inst_rel.imagen_principal.url }}" class="card-img-top" alt="{{ inst_rel.nombre }}">
+                        <a href="{% url 'detalle_refaccion' ref_rel.id %}" class="text-decoration-none">
+                            {% if ref_rel.imagen_principal %}
+                                <img src="{{ ref_rel.imagen_principal.url }}" class="card-img-top" alt="{{ ref_rel.nombre }}">
                             {% else %}
                                 <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 200px;">
-                                    <i class="fas fa-guitar fa-3x text-muted"></i>
+                                    <i class="fas fa-cog fa-3x text-muted"></i>
                                 </div>
                             {% endif %}
                         </a>
                         
                         <div class="card-body">
-                            <h6 class="card-title text-light">{{ inst_rel.nombre }}</h6>
-                            <p class="card-text text-primary fw-bold small">{{ inst_rel.marca }}</p>
+                            <h6 class="card-title text-light">{{ ref_rel.nombre }}</h6>
+                            <p class="card-text text-primary fw-bold small">{{ ref_rel.marca }}</p>
                             <div class="d-flex justify-content-between align-items-center">
-                                <span class="price small">${{ inst_rel.precio|floatformat:2 }}</span>
-                                <span class="badge bg-info small">{{ inst_rel.get_estado_display }}</span>
+                                <span class="price small">${{ ref_rel.precio|floatformat:2 }}</span>
                             </div>
                         </div>
                     </div>
@@ -153,3 +149,4 @@
     {% endif %}
 </div>
 {% endblock %}
+

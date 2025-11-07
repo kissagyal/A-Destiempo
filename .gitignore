@@ -63,6 +63,8 @@ Thumbs.db
 # MariaDB/MySQL dumps (no subir dumps completos)
 *.sql
 !tasks/fixtures/*.sql
+# Pero permitir backups con nombre específico para documentación
+!backup_adestiempo_*.sql
 
 # Temporary files
 *.tmp

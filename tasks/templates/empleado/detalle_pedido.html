@@ -1,0 +1,154 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Pedido #{{ pedido.numero_pedido }} - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'panel_empleado' %}" class="text-muted">Panel</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'pedidos_pendientes' %}" class="text-muted">Pedidos</a></li>
+                    <li class="breadcrumb-item active text-light">#{{ pedido.numero_pedido }}</li>
+                </ol>
+            </nav>
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-receipt me-2"></i>Pedido #{{ pedido.numero_pedido }}
+            </h1>
+            <p class="text-muted">Fecha: {{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Items del pedido -->
+            <div class="card mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Items del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark">
+                            <thead>
+                                <tr>
+                                    <th class="text-white">Producto</th>
+                                    <th class="text-white">Cantidad</th>
+                                    <th class="text-white">Precio Unitario</th>
+                                    <th class="text-white">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in pedido.items.all %}
+                                <tr>
+                                    <td class="text-white">
+                                        {% if item.disco %}
+                                            <strong>{{ item.disco.titulo }}</strong><br>
+                                            <small class="text-primary">{{ item.disco.artista.nombre }}</small>
+                                        {% elif item.instrumento %}
+                                            <strong>{{ item.instrumento.nombre }}</strong><br>
+                                            <small class="text-primary">{{ item.instrumento.marca }}</small>
+                                        {% elif item.refaccion %}
+                                            <strong>{{ item.refaccion.nombre }}</strong><br>
+                                            <small class="text-primary">{{ item.refaccion.marca }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-white">{{ item.cantidad }}</td>
+                                    <td class="text-white">${{ item.precio_unitario|floatformat:2 }}</td>
+                                    <td class="text-white">${{ item.subtotal|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información de envío -->
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Información de Envío</h5>
+                </div>
+                <div class="card-body">
+                    <p class="text-light mb-3"><strong class="text-primary">Nombre:</strong> <span class="text-white">{{ pedido.nombre_completo }}</span></p>
+                    <p class="text-light mb-3"><strong class="text-primary">Dirección:</strong> <span class="text-white">{{ pedido.direccion }}</span></p>
+                    <p class="text-light mb-3"><strong class="text-primary">Ciudad:</strong> <span class="text-white">{{ pedido.ciudad }}</span></p>
+                    {% if pedido.codigo_postal %}
+                    <p class="text-light mb-3"><strong class="text-primary">Código Postal:</strong> <span class="text-white">{{ pedido.codigo_postal }}</span></p>
+                    {% endif %}
+                    <p class="text-light mb-3"><strong class="text-primary">Teléfono:</strong> <span class="text-white">{{ pedido.telefono }}</span></p>
+                    <p class="text-light mb-0"><strong class="text-primary">Email:</strong> <span class="text-white">{{ pedido.email }}</span></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Resumen</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Cambiar estado -->
+                    <form method="post" class="mb-4">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="estado" class="form-label text-light"><strong class="text-primary">Cambiar Estado:</strong></label>
+                            <select name="estado" id="estado" class="form-select">
+                                {% for estado_code, estado_name in pedido.ESTADOS_PEDIDO %}
+                                <option value="{{ estado_code }}" {% if pedido.estado == estado_code %}selected{% endif %}>
+                                    {{ estado_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-2"></i>Actualizar Estado
+                        </button>
+                    </form>
+
+                    <hr>
+
+                    <p class="mb-2 text-light"><strong class="text-primary">Estado Actual:</strong></p>
+                    <span class="badge 
+                        {% if pedido.estado == 'pendiente' %}bg-warning
+                        {% elif pedido.estado == 'procesando' %}bg-info
+                        {% elif pedido.estado == 'en_camino' %}bg-primary
+                        {% elif pedido.estado == 'enviado' %}bg-success
+                        {% elif pedido.estado == 'completado' %}bg-success
+                        {% elif pedido.estado == 'cancelado' %}bg-danger
+                        {% else %}bg-secondary{% endif %} mb-3" style="font-size: 1rem;">
+                        {{ pedido.get_estado_display }}
+                    </span>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-light">Subtotal:</span>
+                        <span class="text-white">${{ pedido.subtotal|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-light">IVA (16%):</span>
+                        <span class="text-white">${{ pedido.impuestos|floatformat:2 }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <strong class="text-white">Total:</strong>
+                        <strong class="price fs-4 text-white">${{ pedido.total|floatformat:2 }}</strong>
+                    </div>
+                    
+                    <p class="mb-2 text-light"><strong class="text-primary">Cliente:</strong></p>
+                    <p class="mb-3 text-white">{{ pedido.cliente.username }}</p>
+                    
+                    <p class="mb-2 text-light"><strong class="text-primary">Método de Pago:</strong></p>
+                    <p class="mb-3 text-white">{{ pedido.get_metodo_pago_display }}</p>
+                    
+                    <p class="mb-2 text-light"><strong class="text-primary">Fecha de Pedido:</strong></p>
+                    <p class="mb-0 text-white">{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

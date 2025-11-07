@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from PIL import Image
-from .models import Disco, Instrumento, Artista, Genero, CategoriaInstrumento
+from .models import Disco, Instrumento, Artista, Genero, CategoriaInstrumento, Refaccion, CategoriaRefaccion
 import requests
 import re
 from datetime import datetime
@@ -115,17 +115,25 @@ class ArtistaField(forms.ModelChoiceField):
         return None
 
 class DiscoForm(forms.ModelForm):
-    # Campo para crear nuevo artista
-    nuevo_artista = forms.CharField(
+    # Campo de artista (texto libre con autocomplete)
+    artista_nombre = forms.CharField(
         max_length=100,
-        required=False,
-        label='Nuevo Artista (si no existe)',
-        help_text='Ingresa el nombre del artista. Se validará y corregirá automáticamente.',
+        required=False,  # Lo manejaremos en clean()
+        label='Artista *',
+        help_text='Escribe el nombre del artista. Si ya existe, aparecerán sugerencias.',
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Ej: The Beatles',
-            'id': 'id_nuevo_artista'
+            'id': 'id_artista_nombre',
+            'list': 'artistas-list',
+            'autocomplete': 'off'
         })
+    )
+    
+    # Campo oculto para el artista_id (si se selecciona uno existente)
+    artista_id = forms.IntegerField(
+        required=False,
+        widget=forms.HiddenInput(attrs={'id': 'id_artista_id'})
     )
     
     # Stock por formato
@@ -163,7 +171,7 @@ class DiscoForm(forms.ModelForm):
         fields = ['titulo', 'artista', 'genero', 'año_lanzamiento', 'formato', 'precio', 'descripcion', 'portada', 'activo']
         widgets = {
             'titulo': forms.TextInput(attrs={'class': 'form-control'}),
-            'artista': forms.Select(attrs={'class': 'form-select', 'id': 'id_artista'}),
+            'artista': forms.HiddenInput(attrs={'required': False}),  # Campo oculto, se maneja con artista_nombre
             'genero': forms.Select(attrs={'class': 'form-select'}),
             'año_lanzamiento': forms.NumberInput(attrs={
                 'class': 'form-control',
@@ -184,15 +192,37 @@ class DiscoForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Hacer que el campo artista no sea requerido (lo manejaremos en clean())
+        self.fields['artista'].required = False
+        
         # Asegurar que solo se muestren géneros predefinidos
+        # Crear géneros que no existan aún
+        for genero_nombre, _ in GENEROS_PREDEFINIDOS:
+            Genero.objects.get_or_create(nombre=genero_nombre, defaults={'nombre': genero_nombre})
+        
+        # Filtrar solo géneros predefinidos
         self.fields['genero'].queryset = Genero.objects.filter(
             nombre__in=[g[0] for g in GENEROS_PREDEFINIDOS]
         ).order_by('nombre')
+        
         # Asegurar que el widget tenga la clase correcta
         self.fields['genero'].widget.attrs.update({'class': 'form-select'})
         
-        # Si es edición, mostrar stock actual por formato
+        # Agregar help text para géneros
+        self.fields['genero'].help_text = 'Selecciona un género de la lista predefinida'
+        
+        # Si es edición, mostrar datos existentes
         if self.instance and self.instance.pk:
+            # Mostrar nombre del artista actual
+            if self.instance.artista:
+                self.fields['artista_nombre'].initial = self.instance.artista.nombre
+                self.fields['artista_id'].initial = self.instance.artista.id
+                # Asignar artista al formulario para que no sea requerido
+                self.initial['artista'] = self.instance.artista
+                self.fields['artista'].initial = self.instance.artista
+            
+            # Mostrar stock actual por formato
             from .models import Inventario, Sucursal
             try:
                 sucursal_principal = Sucursal.objects.get(nombre='Principal')
@@ -239,32 +269,92 @@ class DiscoForm(forms.ModelForm):
         
         return portada
     
-    def clean_nuevo_artista(self):
-        nuevo_artista = self.cleaned_data.get('nuevo_artista')
-        if nuevo_artista:
-            # Validar y corregir nombre del artista
-            nombre_corregido = validar_artista_nombre(nuevo_artista)
-            return nombre_corregido
-        return nuevo_artista
+    def clean_artista_nombre(self):
+        artista_nombre = self.cleaned_data.get('artista_nombre', '').strip()
+        if not artista_nombre:
+            raise ValidationError('El nombre del artista es requerido.')
+        
+        # Validar y corregir nombre del artista
+        nombre_corregido = validar_artista_nombre(artista_nombre)
+        return nombre_corregido
     
     def clean(self):
         cleaned_data = super().clean()
-        artista = cleaned_data.get('artista')
-        nuevo_artista = cleaned_data.get('nuevo_artista')
+        artista_nombre = cleaned_data.get('artista_nombre', '').strip() or ''
+        artista_id = cleaned_data.get('artista_id')
         
-        # Si se proporciona un nuevo artista, crear o actualizar
-        if nuevo_artista and not artista:
-            nombre_corregido = self.clean_nuevo_artista()
-            artista, created = Artista.objects.get_or_create(
-                nombre=nombre_corregido,
-                defaults={'nombre': nombre_corregido}
-            )
-            cleaned_data['artista'] = artista
+        # Si es edición y ya tiene artista, usar ese artista
+        if self.instance and self.instance.pk and self.instance.artista:
+            if not artista_nombre:
+                artista_nombre = self.instance.artista.nombre
+                cleaned_data['artista_nombre'] = artista_nombre
+            # Si ya tiene artista, usarlo directamente
+            if not artista_id:
+                artista = self.instance.artista
+                cleaned_data['artista'] = artista
+                return cleaned_data
+        
+        # Validar que haya artista_nombre o artista_id
+        if not artista_nombre and not artista_id:
+            raise ValidationError({'artista_nombre': 'El nombre del artista es requerido.'})
+        
+        # Si hay un artista_id seleccionado, usarlo
+        if artista_id:
+            try:
+                artista = Artista.objects.get(id=artista_id)
+                # Si hay nombre y no coincide, usar el nombre del campo
+                if artista_nombre and artista.nombre.lower() != artista_nombre.lower():
+                    artista, created = Artista.objects.get_or_create(
+                        nombre=artista_nombre,
+                        defaults={'nombre': artista_nombre}
+                    )
+            except Artista.DoesNotExist:
+                # Si el ID no existe, crear/obtener por nombre
+                if artista_nombre:
+                    artista, created = Artista.objects.get_or_create(
+                        nombre=artista_nombre,
+                        defaults={'nombre': artista_nombre}
+                    )
+                else:
+                    raise ValidationError({'artista_nombre': 'El nombre del artista es requerido.'})
+        else:
+            # Si no hay ID, buscar por nombre o crear
+            if artista_nombre:
+                artista, created = Artista.objects.get_or_create(
+                    nombre=artista_nombre,
+                    defaults={'nombre': artista_nombre}
+                )
+            else:
+                raise ValidationError({'artista_nombre': 'El nombre del artista es requerido.'})
+        
+        # Asegurar que el artista esté en cleaned_data
+        cleaned_data['artista'] = artista
         
         return cleaned_data
     
     def save(self, commit=True):
+        # Obtener el artista de cleaned_data
+        artista = self.cleaned_data.get('artista')
+        
+        # Asignar el artista al disco ANTES de llamar a super().save()
+        if artista:
+            self.instance.artista = artista
+        
         disco = super().save(commit=False)
+        
+        # Verificación final: asegurar que el artista esté asignado
+        if not disco.artista:
+            if artista:
+                disco.artista = artista
+            else:
+                # Si aún no hay artista, obtenerlo del nombre
+                artista_nombre = self.cleaned_data.get('artista_nombre', '').strip()
+                if artista_nombre:
+                    artista, created = Artista.objects.get_or_create(
+                        nombre=artista_nombre,
+                        defaults={'nombre': artista_nombre}
+                    )
+                    disco.artista = artista
         
         if commit:
             disco.save()
@@ -302,6 +392,22 @@ class InstrumentoForm(forms.ModelForm):
             'modelo': forms.TextInput(attrs={'class': 'form-control'}),
             'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'estado': forms.Select(attrs={'class': 'form-select'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'imagen_principal': forms.FileInput(attrs={'class': 'form-control'}),
+            'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+
+class RefaccionForm(forms.ModelForm):
+    class Meta:
+        model = Refaccion
+        fields = ['nombre', 'marca', 'categoria', 'modelo_compatible', 'precio', 'stock', 'descripcion', 'imagen_principal', 'activo']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'marca': forms.TextInput(attrs={'class': 'form-control'}),
+            'categoria': forms.Select(attrs={'class': 'form-select'}),
+            'modelo_compatible': forms.TextInput(attrs={'class': 'form-control'}),
+            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'stock': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
             'imagen_principal': forms.FileInput(attrs={'class': 'form-control'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),

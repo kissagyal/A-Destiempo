@@ -274,3 +274,182 @@ def get_stock_total_instrumento(instrumento):
     return Inventario.objects.filter(
         producto_instrumento=instrumento
     ).aggregate(total=Sum('stock_disponible'))['total'] or 0
+
+class Favorito(models.Model):
+    """Modelo para guardar productos favoritos de los usuarios"""
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, related_name='favoritos')
+    disco = models.ForeignKey(Disco, on_delete=models.CASCADE, null=True, blank=True, related_name='favoritos')
+    instrumento = models.ForeignKey(Instrumento, on_delete=models.CASCADE, null=True, blank=True, related_name='favoritos')
+    refaccion = models.ForeignKey('Refaccion', on_delete=models.CASCADE, null=True, blank=True, related_name='favoritos')
+    fecha_agregado = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        verbose_name = 'Favorito'
+        verbose_name_plural = 'Favoritos'
+        unique_together = [
+            ('usuario', 'disco'),
+            ('usuario', 'instrumento'),
+            ('usuario', 'refaccion'),
+        ]
+    
+    def __str__(self):
+        if self.disco:
+            return f"{self.usuario.username} - {self.disco.titulo}"
+        elif self.instrumento:
+            return f"{self.usuario.username} - {self.instrumento.nombre}"
+        elif self.refaccion:
+            return f"{self.usuario.username} - {self.refaccion.nombre}"
+        return f"{self.usuario.username} - Favorito"
+
+# ===========================================
+# MODELO DE REFACCIONES
+# ===========================================
+
+class CategoriaRefaccion(models.Model):
+    """Categorías para refacciones"""
+    nombre = models.CharField(max_length=50, unique=True)
+    descripcion = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = 'Categoría de Refacción'
+        verbose_name_plural = 'Categorías de Refacciones'
+    
+    def __str__(self):
+        return self.nombre
+
+def upload_to_refacciones(instance, filename):
+    return os.path.join('refacciones', instance.categoria.nombre, filename)
+
+class Refaccion(models.Model):
+    """Modelo para refacciones de instrumentos"""
+    nombre = models.CharField(max_length=200)
+    marca = models.CharField(max_length=100)
+    categoria = models.ForeignKey(CategoriaRefaccion, on_delete=models.CASCADE, related_name='refacciones')
+    modelo_compatible = models.CharField(max_length=200, blank=True, help_text="Modelos de instrumentos con los que es compatible")
+    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    stock = models.PositiveIntegerField(default=0)
+    descripcion = models.TextField(blank=True)
+    imagen_principal = models.ImageField(upload_to=upload_to_refacciones, blank=True, null=True)
+    fecha_agregado = models.DateTimeField(auto_now_add=True)
+    activo = models.BooleanField(default=True)
+    
+    class Meta:
+        verbose_name = 'Refacción'
+        verbose_name_plural = 'Refacciones'
+        ordering = ['-fecha_agregado']
+    
+    def __str__(self):
+        return f"{self.marca} {self.nombre}"
+    
+    @property
+    def stock_total(self):
+        """Stock total en todas las sucursales (compatibilidad)"""
+        return get_stock_total_refaccion(self) if hasattr(self, 'get_stock_total_refaccion') else self.stock
+    
+    def tiene_stock(self):
+        """Verifica si tiene stock disponible"""
+        return self.stock_total > 0
+
+# ===========================================
+# MODELOS DE PEDIDOS Y FACTURACIÓN
+# ===========================================
+
+class Pedido(models.Model):
+    """Modelo para pedidos de clientes"""
+    ESTADOS_PEDIDO = [
+        ('pendiente', 'Pendiente'),
+        ('procesando', 'Procesando'),
+        ('en_camino', 'En Camino'),
+        ('enviado', 'Enviado'),
+        ('completado', 'Completado'),
+        ('cancelado', 'Cancelado'),
+    ]
+    
+    cliente = models.ForeignKey(User, on_delete=models.CASCADE, related_name='pedidos')
+    numero_pedido = models.CharField(max_length=20, unique=True, editable=False)
+    fecha_pedido = models.DateTimeField(auto_now_add=True)
+    fecha_actualizacion = models.DateTimeField(auto_now=True)
+    estado = models.CharField(max_length=20, choices=ESTADOS_PEDIDO, default='pendiente')
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    impuestos = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    
+    # Información de envío
+    nombre_completo = models.CharField(max_length=200)
+    direccion = models.TextField()
+    ciudad = models.CharField(max_length=100)
+    codigo_postal = models.CharField(max_length=20, blank=True)
+    telefono = models.CharField(max_length=20)
+    email = models.EmailField()
+    
+    # Información de pago (simulada)
+    metodo_pago = models.CharField(max_length=50, default='transferencia', help_text="Método de pago simulado")
+    pagado = models.BooleanField(default=False)
+    fecha_pago = models.DateTimeField(null=True, blank=True)
+    
+    # Facturación
+    factura_enviada = models.BooleanField(default=False)
+    fecha_factura_enviada = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        verbose_name = 'Pedido'
+        verbose_name_plural = 'Pedidos'
+        ordering = ['-fecha_pedido']
+    
+    def __str__(self):
+        return f"Pedido #{self.numero_pedido} - {self.cliente.username}"
+    
+    def save(self, *args, **kwargs):
+        if not self.numero_pedido:
+            # Generar número de pedido único
+            from datetime import datetime
+            timestamp = datetime.now().strftime('%Y%m%d')
+            last_pedido = Pedido.objects.filter(numero_pedido__startswith=timestamp).order_by('-numero_pedido').first()
+            if last_pedido:
+                try:
+                    last_num = int(last_pedido.numero_pedido.split('-')[-1])
+                    new_num = last_num + 1
+                except:
+                    new_num = 1
+            else:
+                new_num = 1
+            self.numero_pedido = f"{timestamp}-{new_num:04d}"
+        super().save(*args, **kwargs)
+    
+    def calcular_total(self):
+        """Calcula el total del pedido sumando los items"""
+        total = sum(item.subtotal for item in self.items.all())
+        self.subtotal = total
+        self.impuestos = total * 0.16  # IVA 16%
+        self.total = self.subtotal + self.impuestos
+        self.save(update_fields=['subtotal', 'impuestos', 'total'])
+        return self.total
+
+class ItemPedido(models.Model):
+    """Items individuales de un pedido"""
+    pedido = models.ForeignKey(Pedido, on_delete=models.CASCADE, related_name='items')
+    disco = models.ForeignKey(Disco, on_delete=models.SET_NULL, null=True, blank=True)
+    instrumento = models.ForeignKey(Instrumento, on_delete=models.SET_NULL, null=True, blank=True)
+    refaccion = models.ForeignKey(Refaccion, on_delete=models.SET_NULL, null=True, blank=True)
+    cantidad = models.PositiveIntegerField(default=1)
+    precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    class Meta:
+        verbose_name = 'Item de Pedido'
+        verbose_name_plural = 'Items de Pedido'
+    
+    def __str__(self):
+        producto = self.disco or self.instrumento or self.refaccion
+        if producto:
+            return f"{producto} x{self.cantidad}"
+        return f"Item {self.id}"
+    
+    def save(self, *args, **kwargs):
+        self.subtotal = self.cantidad * self.precio_unitario
+        super().save(*args, **kwargs)
+
+def get_stock_total_refaccion(refaccion):
+    """Obtiene el stock total de una refacción en todas las sucursales"""
+    # Por ahora retornar stock directo, se puede expandir con inventario multi-sucursal
+    return refaccion.stock

@@ -1,0 +1,110 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Gestión de Pedidos - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-shopping-bag me-2"></i>Gestión de Pedidos
+            </h1>
+            <p class="text-muted">Administra los pedidos pendientes y completados</p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="btn-group" role="group">
+                        <a href="?estado=todos" class="btn {% if estado_actual == 'todos' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            Todos
+                        </a>
+                        <a href="?estado=pendiente" class="btn {% if estado_actual == 'pendiente' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+                            Pendientes
+                        </a>
+                        <a href="?estado=procesando" class="btn {% if estado_actual == 'procesando' %}btn-info{% else %}btn-outline-info{% endif %}">
+                            Procesando
+                        </a>
+                        <a href="?estado=en_camino" class="btn {% if estado_actual == 'en_camino' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+                            En Camino
+                        </a>
+                        <a href="?estado=enviado" class="btn {% if estado_actual == 'enviado' %}btn-success{% else %}btn-outline-success{% endif %}">
+                            Enviados
+                        </a>
+                        <a href="?estado=completado" class="btn {% if estado_actual == 'completado' %}btn-success{% else %}btn-outline-success{% endif %}">
+                            Completados
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de pedidos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Lista de Pedidos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if pedidos %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dark">
+                            <thead>
+                                <tr>
+                                    <th class="text-white">Pedido</th>
+                                    <th class="text-white">Cliente</th>
+                                    <th class="text-white">Fecha</th>
+                                    <th class="text-white">Items</th>
+                                    <th class="text-white">Total</th>
+                                    <th class="text-white">Estado</th>
+                                    <th class="text-white">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pedido in pedidos %}
+                                <tr>
+                                    <td class="text-white"><strong>#{{ pedido.numero_pedido }}</strong></td>
+                                    <td class="text-white">{{ pedido.cliente.username }}</td>
+                                    <td class="text-white">{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</td>
+                                    <td class="text-white">{{ pedido.items.count }}</td>
+                                    <td class="price text-white">${{ pedido.total|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if pedido.estado == 'pendiente' %}bg-warning
+                                            {% elif pedido.estado == 'procesando' %}bg-info
+                                            {% elif pedido.estado == 'en_camino' %}bg-primary
+                                            {% elif pedido.estado == 'enviado' %}bg-success
+                                            {% elif pedido.estado == 'completado' %}bg-success
+                                            {% elif pedido.estado == 'cancelado' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ pedido.get_estado_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'detalle_pedido_vendedor' pedido.id %}" class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye me-1"></i>Ver
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-light">No hay pedidos con este estado</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

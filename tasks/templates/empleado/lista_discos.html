@@ -1,0 +1,185 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }} - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'panel_empleado' %}" class="text-muted">Panel</a></li>
+                    <li class="breadcrumb-item active text-light">Discos</li>
+                </ol>
+            </nav>
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-compact-disc me-2"></i>{{ titulo }}
+            </h1>
+            <p class="text-light">Administra todos los discos del catálogo</p>
+        </div>
+    </div>
+
+    <!-- Acciones rápidas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{% url 'crear_disco' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Nuevo Disco
+                </a>
+                <a href="{% url 'panel_empleado' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Volver al Panel
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <label for="search" class="form-label text-light">Buscar</label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="{{ search_actual|default:'' }}" placeholder="Título o artista...">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="formato" class="form-label text-light">Formato</label>
+                            <select class="form-select" id="formato" name="formato">
+                                <option value="">Todos</option>
+                                <option value="vinilo" {% if formato_actual == 'vinilo' %}selected{% endif %}>Vinilo</option>
+                                <option value="cd" {% if formato_actual == 'cd' %}selected{% endif %}>CD</option>
+                                <option value="digital" {% if formato_actual == 'digital' %}selected{% endif %}>Digital</option>
+                                <option value="casete" {% if formato_actual == 'casete' %}selected{% endif %}>Casete</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="genero" class="form-label text-light">Género</label>
+                            <select class="form-select" id="genero" name="genero">
+                                <option value="">Todos</option>
+                                {% for genero in generos %}
+                                    <option value="{{ genero.id }}" {% if genero_actual == genero.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ genero.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="artista" class="form-label text-light">Artista</label>
+                            <select class="form-select" id="artista" name="artista">
+                                <option value="">Todos</option>
+                                {% for artista in artistas %}
+                                    <option value="{{ artista.id }}" {% if artista_actual == artista.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ artista.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="activo" class="form-label text-light">Estado</label>
+                            <select class="form-select" id="activo" name="activo">
+                                <option value="">Todos</option>
+                                <option value="si" {% if activo_actual == 'si' %}selected{% endif %}>Activos</option>
+                                <option value="no" {% if activo_actual == 'no' %}selected{% endif %}>Inactivos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lista de discos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list me-2"></i>Lista de Discos ({{ discos.count }})
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if discos %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dark">
+                            <thead>
+                                <tr>
+                                    <th class="text-white">Portada</th>
+                                    <th class="text-white">Título</th>
+                                    <th class="text-white">Artista</th>
+                                    <th class="text-white">Género</th>
+                                    <th class="text-white">Formato</th>
+                                    <th class="text-white">Año</th>
+                                    <th class="text-white">Precio</th>
+                                    <th class="text-white">Stock</th>
+                                    <th class="text-white">Estado</th>
+                                    <th class="text-white">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for disco in discos %}
+                                <tr>
+                                    <td>
+                                        {% if disco.portada %}
+                                            <img src="{{ disco.portada.url }}" alt="{{ disco.titulo }}" 
+                                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                        {% else %}
+                                            <div class="d-flex align-items-center justify-content-center bg-secondary rounded" 
+                                                 style="width: 50px; height: 50px;">
+                                                <i class="fas fa-compact-disc text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-white"><strong>{{ disco.titulo }}</strong></td>
+                                    <td class="text-white">{{ disco.artista.nombre }}</td>
+                                    <td class="text-white">{{ disco.genero.nombre|default:"-" }}</td>
+                                    <td class="text-white">{{ disco.get_formato_display }}</td>
+                                    <td class="text-white">{{ disco.año_lanzamiento|default:"-" }}</td>
+                                    <td class="text-white price">${{ disco.precio|floatformat:2 }}</td>
+                                    <td class="text-white">{{ disco.stock_total|default:0 }}</td>
+                                    <td>
+                                        {% if disco.activo %}
+                                            <span class="badge bg-success">Activo</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Inactivo</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            <a href="{% url 'editar_disco' disco.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'eliminar_disco' disco.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar este disco?')">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-compact-disc fa-5x text-muted mb-4"></i>
+                        <h3 class="text-light">No se encontraron discos</h3>
+                        <p class="text-muted">Intenta ajustar los filtros de búsqueda o crea un nuevo disco.</p>
+                        <a href="{% url 'crear_disco' %}" class="btn btn-primary">
+                            <i class="fas fa-plus me-2"></i>Crear Primer Disco
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

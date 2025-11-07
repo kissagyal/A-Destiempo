@@ -62,37 +62,35 @@
                             {% endif %}
                         </div>
                         <div class="col-md-6">
-                            <label for="{{ form.artista.id_for_label }}" class="form-label">Artista Existente</label>
-                            {{ form.artista }}
-                            {% if form.artista.errors %}
-                                <div class="text-danger small mt-1">{{ form.artista.errors }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                    
-                    <div class="row mb-3">
-                        <div class="col-md-12">
-                            <label for="{{ form.nuevo_artista.id_for_label }}" class="form-label">
-                                {{ form.nuevo_artista.label }}
+                            <label for="{{ form.artista_nombre.id_for_label }}" class="form-label">
+                                {{ form.artista_nombre.label }}
                             </label>
-                            {{ form.nuevo_artista }}
-                            {% if form.nuevo_artista.help_text %}
-                                <small class="form-text text-muted">{{ form.nuevo_artista.help_text }}</small>
+                            {{ form.artista_nombre }}
+                            {{ form.artista_id }}
+                            {% if form.artista_nombre.help_text %}
+                                <small class="form-text text-muted">{{ form.artista_nombre.help_text }}</small>
                             {% endif %}
-                            {% if form.nuevo_artista.errors %}
-                                <div class="text-danger small mt-1">{{ form.nuevo_artista.errors }}</div>
+                            {% if form.artista_nombre.errors %}
+                                <div class="text-danger small mt-1">{{ form.artista_nombre.errors }}</div>
                             {% endif %}
-                            <div id="artista-corregido" class="alert alert-info mt-2" style="display:none;">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>Nombre corregido:</strong> <span id="nombre-corregido-text"></span>
-                            </div>
+                            <!-- Lista de artistas para autocomplete -->
+                            <datalist id="artistas-list">
+                                {% for artista in artistas_existentes %}
+                                <option value="{{ artista.nombre }}" data-id="{{ artista.id }}">
+                                {% endfor %}
+                            </datalist>
+                            <!-- Sugerencias de artistas -->
+                            <div id="artista-sugerencias" class="list-group mt-2" style="display:none; position:absolute; z-index:1000; max-height:200px; overflow-y:auto; width:100%;"></div>
                         </div>
                     </div>
 
                     <div class="row mb-3">
                         <div class="col-md-4">
-                            <label for="{{ form.genero.id_for_label }}" class="form-label">Género</label>
+                            <label for="{{ form.genero.id_for_label }}" class="form-label">Género *</label>
                             {{ form.genero }}
+                            {% if form.genero.help_text %}
+                                <small class="form-text text-muted">{{ form.genero.help_text }}</small>
+                            {% endif %}
                             {% if form.genero.errors %}
                                 <div class="text-danger small mt-1">{{ form.genero.errors }}</div>
                             {% endif %}
@@ -127,14 +125,19 @@
                             {% if form.portada.errors %}
                                 <div class="text-danger small mt-1">{{ form.portada.errors }}</div>
                             {% endif %}
-                            <small class="form-text text-muted">
+                            <small class="form-text text-muted mb-2">
                                 <i class="fas fa-info-circle me-1"></i>
                                 Si usaste la búsqueda de metadatos, la portada se descargará automáticamente. 
                                 También puedes subir una imagen cuadrada (mín. 500x500px).
                             </small>
-                            <div id="preview-portada" class="mt-2">
+                            <!-- Aviso de portada encontrada (fuera del recuadro) -->
+                            <div id="portada-aviso" style="display:none;"></div>
+                            <!-- Preview de portada DENTRO del campo -->
+                            <div id="preview-portada" class="mt-2" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 10px; background: var(--dark-bg); min-height: 150px; display: flex; align-items: center; justify-content: center;">
                                 {% if disco and disco.portada %}
-                                    <img src="{{ disco.portada.url }}" alt="Portada actual" class="img-thumbnail" style="max-width: 200px;">
+                                    <img src="{{ disco.portada.url }}" alt="Portada actual" class="img-thumbnail" style="max-width: 200px; max-height: 200px; display: block; margin: 0 auto;">
+                                {% else %}
+                                    <span class="text-muted"><i class="fas fa-image me-2"></i>La portada aparecerá aquí</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -275,20 +278,66 @@ document.addEventListener("DOMContentLoaded", function() {
                     const aspectRatio = width / height;
                     
                     if (width < 500 || height < 500) {
-                        alert(`La imagen debe tener al menos 500x500 píxeles. Tu imagen es ${width}x${height} píxeles.`);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Tamaño inválido',
+                            text: `La imagen debe tener al menos 500x500 píxeles. Tu imagen es ${width}x${height} píxeles.`,
+                            confirmButtonColor: '#ff6b35',
+                            background: '#1a1a1a',
+                            color: '#ffffff'
+                        });
                         portadaInput.value = '';
+                        // Restaurar preview
+                        const preview = document.getElementById('preview-portada');
+                        if (preview) {
+                            preview.innerHTML = '<span class="text-muted"><i class="fas fa-image me-2"></i>La portada aparecerá aquí</span>';
+                        }
                         return;
                     }
                     
                     if (aspectRatio < 0.95 || aspectRatio > 1.05) {
-                        alert(`La imagen debe ser cuadrada. Tu imagen es ${width}x${height} píxeles (ratio: ${aspectRatio.toFixed(2)}).`);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Formato inválido',
+                            text: `La imagen debe ser cuadrada. Tu imagen es ${width}x${height} píxeles (ratio: ${aspectRatio.toFixed(2)}).`,
+                            confirmButtonColor: '#ff6b35',
+                            background: '#1a1a1a',
+                            color: '#ffffff'
+                        });
                         portadaInput.value = '';
+                        // Restaurar preview
+                        const preview = document.getElementById('preview-portada');
+                        if (preview) {
+                            preview.innerHTML = '<span class="text-muted"><i class="fas fa-image me-2"></i>La portada aparecerá aquí</span>';
+                        }
                         return;
+                    }
+                    
+                    // Mostrar preview de la imagen seleccionada
+                    const preview = document.getElementById('preview-portada');
+                    if (preview) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            preview.innerHTML = `<img src="${e.target.result}" class="img-thumbnail" style="max-width: 200px; max-height: 200px; display: block; margin: 0 auto;" alt="Preview">`;
+                        };
+                        reader.readAsDataURL(file);
                     }
                 };
                 img.onerror = function() {
-                    alert('El archivo no es una imagen válida.');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'El archivo no es una imagen válida.',
+                        confirmButtonColor: '#ff6b35',
+                        background: '#1a1a1a',
+                        color: '#ffffff'
+                    });
                     portadaInput.value = '';
+                    // Restaurar preview
+                    const preview = document.getElementById('preview-portada');
+                    if (preview) {
+                        preview.innerHTML = '<span class="text-muted"><i class="fas fa-image me-2"></i>La portada aparecerá aquí</span>';
+                    }
                 };
                 img.src = URL.createObjectURL(file);
             }
@@ -419,21 +468,33 @@ document.addEventListener("DOMContentLoaded", function() {
                         // Agregar event listeners a los botones
                         document.querySelectorAll('.usar-metadatos-btn').forEach(btn => {
                             btn.addEventListener('click', function() {
-                                const titulo = this.getAttribute('data-titulo');
+                                const titulo = this.getAttribute('data-titulo') || '';
                                 const tituloCompleto = this.getAttribute('data-titulo-completo') || titulo;
-                                const artista = this.getAttribute('data-artista');
-                                const año = this.getAttribute('data-año');
-                                const generos = JSON.parse(this.getAttribute('data-generos'));
-                                const cover = this.getAttribute('data-cover');
-                                const version = this.getAttribute('data-version');
-                                const edicion = this.getAttribute('data-edicion');
+                                const artista = this.getAttribute('data-artista') || '';
+                                const año = this.getAttribute('data-año') || '';
+                                const generosAttr = this.getAttribute('data-generos');
+                                let generos = [];
+                                try {
+                                    if (generosAttr && generosAttr !== 'null' && generosAttr !== '') {
+                                        generos = JSON.parse(generosAttr);
+                                    }
+                                } catch (e) {
+                                    console.error('Error parsing generos:', e);
+                                    generos = [];
+                                }
+                                const cover = this.getAttribute('data-cover') || '';
+                                const version = this.getAttribute('data-version') || '';
+                                const edicion = this.getAttribute('data-edicion') || '';
                                 
                                 // Llenar formulario
                                 document.getElementById('{{ form.titulo.id_for_label }}').value = titulo;
                                 
-                                // Si hay artista nuevo, llenar el campo
-                                if (artista && !document.getElementById('{{ form.artista.id_for_label }}').value) {
-                                    document.getElementById('{{ form.nuevo_artista.id_for_label }}').value = artista;
+                                // Llenar campo de artista
+                                if (artista) {
+                                    const artistaNombreField = document.getElementById('id_artista_nombre');
+                                    if (artistaNombreField) {
+                                        artistaNombreField.value = artista;
+                                    }
                                 }
                                 
                                 // Año
@@ -451,27 +512,40 @@ document.addEventListener("DOMContentLoaded", function() {
                                     descripcionField.value = descText;
                                 }
                                 
-                                // Guardar URL de portada
+                                // Guardar URL de portada y mostrar preview
                                 if (cover) {
                                     coverArtUrl.value = cover;
-                                    // Mostrar preview
+                                    
+                                    // Mostrar aviso FUERA del recuadro (abajo del campo)
+                                    const avisoDiv = document.getElementById('portada-aviso');
+                                    if (avisoDiv) {
+                                        avisoDiv.innerHTML = `
+                                            <div class="alert alert-success small mb-2">
+                                                <i class="fas fa-check-circle me-2"></i>Portada encontrada
+                                            </div>
+                                        `;
+                                        avisoDiv.style.display = 'block';
+                                    }
+                                    
+                                    // Mostrar preview DENTRO del recuadro (solo imagen)
                                     const preview = document.getElementById('preview-portada');
                                     if (preview) {
                                         preview.innerHTML = `
-                                            <div class="alert alert-success small">
-                                                <i class="fas fa-check-circle me-2"></i>Portada encontrada
-                                            </div>
-                                            <img src="${cover}" class="img-thumbnail mt-2" style="max-width: 200px;" alt="Preview" 
-                                                 onerror="this.parentElement.innerHTML='<div class=\\'alert alert-warning small\\'>Error al cargar portada</div>'">
+                                            <img src="${cover}" class="img-thumbnail" style="max-width: 200px; max-height: 200px; display: block; margin: 0 auto;" alt="Preview" 
+                                                 onerror="this.parentElement.innerHTML='<span class=\\'text-muted\\'><i class=\\'fas fa-image me-2\\'></i>Error al cargar portada</span>'">
                                         `;
                                     }
                                 } else {
+                                    // Ocultar aviso si no hay portada
+                                    const avisoDiv = document.getElementById('portada-aviso');
+                                    if (avisoDiv) {
+                                        avisoDiv.style.display = 'none';
+                                    }
+                                    
                                     const preview = document.getElementById('preview-portada');
                                     if (preview) {
                                         preview.innerHTML = `
-                                            <div class="alert alert-info small">
-                                                <i class="fas fa-info-circle me-2"></i>No se encontró portada. Puedes subir una manualmente.
-                                            </div>
+                                            <span class="text-muted"><i class="fas fa-image me-2"></i>No se encontró portada. Puedes subir una manualmente.</span>
                                         `;
                                     }
                                 }
@@ -491,6 +565,72 @@ document.addEventListener("DOMContentLoaded", function() {
                     btnBuscarMetadatos.innerHTML = '<i class="fas fa-search me-2"></i>Buscar en Internet';
                     alert('Error al buscar metadatos. Por favor intenta de nuevo.');
                 });
+        });
+    }
+    
+    // Autocomplete de artistas
+    const artistaNombreField = document.getElementById('id_artista_nombre');
+    const artistaIdField = document.getElementById('id_artista_id');
+    const sugerenciasDiv = document.getElementById('artista-sugerencias');
+    const datalist = document.getElementById('artistas-list');
+    
+    if (artistaNombreField && sugerenciasDiv && datalist) {
+        let timeoutId = null;
+        
+        artistaNombreField.addEventListener('input', function() {
+            const valor = this.value.trim();
+            
+            // Limpiar timeout anterior
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
+            
+            // Si está vacío, ocultar sugerencias
+            if (!valor) {
+                sugerenciasDiv.style.display = 'none';
+                if (artistaIdField) artistaIdField.value = '';
+                return;
+            }
+            
+            // Esperar 300ms antes de buscar (debounce)
+            timeoutId = setTimeout(function() {
+                // Buscar artistas que coincidan
+                const opciones = Array.from(datalist.options);
+                const coincidencias = opciones.filter(opt => {
+                    return opt.value.toLowerCase().includes(valor.toLowerCase());
+                }).slice(0, 5); // Máximo 5 sugerencias
+                
+                if (coincidencias.length > 0) {
+                    // Mostrar sugerencias
+                    sugerenciasDiv.innerHTML = '';
+                    coincidencias.forEach(opt => {
+                        const item = document.createElement('a');
+                        item.href = '#';
+                        item.className = 'list-group-item list-group-item-action';
+                        item.style.cssText = 'background: var(--card-bg); border-color: var(--border-color); color: var(--text-light); cursor: pointer;';
+                        item.textContent = opt.value;
+                        item.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            artistaNombreField.value = opt.value;
+                            if (artistaIdField) artistaIdField.value = opt.getAttribute('data-id') || '';
+                            sugerenciasDiv.style.display = 'none';
+                        });
+                        sugerenciasDiv.appendChild(item);
+                    });
+                    sugerenciasDiv.style.display = 'block';
+                } else {
+                    sugerenciasDiv.style.display = 'none';
+                    if (artistaIdField) artistaIdField.value = '';
+                }
+            }, 300);
+        });
+        
+        // Ocultar sugerencias al hacer clic fuera
+        document.addEventListener('click', function(e) {
+            if (artistaNombreField && !artistaNombreField.contains(e.target) && 
+                sugerenciasDiv && !sugerenciasDiv.contains(e.target)) {
+                sugerenciasDiv.style.display = 'none';
+            }
         });
     }
 });

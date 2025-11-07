@@ -148,6 +148,17 @@ LOGIN_URL = '/accounts/login/'
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # La sesión expira al cerrar el navegador
 SESSION_COOKIE_AGE = 86400  # 24 horas en segundos (si no se cierra el navegador)
 SESSION_SAVE_EVERY_REQUEST = False  # No guardar sesión en cada request
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Para desarrollo, envía a la consola
+# Para producción, usar SMTP:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# EMAIL_HOST = 'smtp.gmail.com'  # o tu servidor SMTP
+# EMAIL_PORT = 587
+# EMAIL_USE_TLS = True
+# EMAIL_HOST_USER = 'tu-email@gmail.com'
+# EMAIL_HOST_PASSWORD = 'tu-contraseña'
+DEFAULT_FROM_EMAIL = 'A Destiempo <noreply@adestiempo.com>'
 SESSION_COOKIE_SECURE = False  # Solo HTTPS en producción
 SESSION_COOKIE_HTTPONLY = True  # Protección XSS
 SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF

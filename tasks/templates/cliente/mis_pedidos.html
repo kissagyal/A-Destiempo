@@ -1,0 +1,72 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Mis Pedidos - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-shopping-bag me-2"></i>Mis Pedidos
+            </h1>
+            <p class="text-muted">Historial de todos tus pedidos</p>
+        </div>
+    </div>
+
+    {% if pedidos %}
+    <div class="row">
+        {% for pedido in pedidos %}
+        <div class="col-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <h5 class="mb-2">Pedido #{{ pedido.numero_pedido }}</h5>
+                            <p class="text-muted small mb-1">
+                                <i class="fas fa-calendar me-1"></i>{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}
+                            </p>
+                            <span class="badge 
+                                {% if pedido.estado == 'pendiente' %}bg-warning
+                                {% elif pedido.estado == 'procesando' %}bg-info
+                                {% elif pedido.estado == 'en_camino' %}bg-primary
+                                {% elif pedido.estado == 'enviado' %}bg-success
+                                {% elif pedido.estado == 'completado' %}bg-success
+                                {% elif pedido.estado == 'cancelado' %}bg-danger
+                                {% else %}bg-secondary{% endif %}">
+                                {{ pedido.get_estado_display }}
+                            </span>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1"><strong>Items:</strong> {{ pedido.items.count }}</p>
+                            <p class="mb-1"><strong>Dirección:</strong> {{ pedido.direccion|truncatechars:30 }}</p>
+                            <p class="mb-0"><strong>Ciudad:</strong> {{ pedido.ciudad }}</p>
+                        </div>
+                        <div class="col-md-3 text-end">
+                            <p class="mb-1"><strong>Total:</strong></p>
+                            <p class="price fs-4 mb-0">${{ pedido.total|floatformat:2 }}</p>
+                        </div>
+                        <div class="col-md-2 text-end">
+                            <a href="{% url 'detalle_pedido' pedido.id %}" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-eye me-1"></i>Ver Detalles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="fas fa-shopping-bag fa-5x text-muted mb-4"></i>
+        <h3 class="text-light mb-3">No tienes pedidos aún</h3>
+        <p class="text-muted mb-4">Realiza tu primera compra para comenzar a ver tu historial de pedidos.</p>
+        <a href="{% url 'lista_discos' %}" class="btn btn-primary">
+            <i class="fas fa-shopping-bag me-2"></i>Empezar a Comprar
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

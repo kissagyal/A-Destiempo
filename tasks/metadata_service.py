@@ -9,7 +9,6 @@ from urllib.parse import quote
 import os
 import concurrent.futures
 from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
 
 def obtener_portada_rapida(release_id: str, timeout: float = 1.0) -> Optional[str]:
     """Obtiene portada de forma rápida desde Cover Art Archive"""
@@ -210,9 +209,9 @@ def buscar_metadatos_disco(titulo: str, artista: Optional[str] = None) -> List[D
     
     return results
 
-def descargar_portada(url: str, disco_titulo: str, artista_nombre: str) -> Optional[str]:
+def descargar_portada(url: str, disco_titulo: str, artista_nombre: str) -> Optional[ContentFile]:
     """
-    Descarga una portada desde una URL y la guarda en el sistema de archivos
+    Descarga una portada desde una URL y la devuelve como ContentFile para asignar a ImageField
     
     Args:
         url: URL de la imagen
@@ -220,7 +219,7 @@ def descargar_portada(url: str, disco_titulo: str, artista_nombre: str) -> Optio
         artista_nombre: Nombre del artista (para la ruta)
     
     Returns:
-        Ruta relativa del archivo guardado o None si falla
+        ContentFile con la imagen o None si falla
     """
     try:
         response = requests.get(url, timeout=10, stream=True)
@@ -229,7 +228,65 @@ def descargar_portada(url: str, disco_titulo: str, artista_nombre: str) -> Optio
         # Verificar que sea una imagen
         content_type = response.headers.get('content-type', '')
         if 'image' not in content_type:
+            print(f"El contenido no es una imagen: {content_type}")
             return None
+        
+        # Leer contenido de la imagen
+        image_content = response.content
+        
+        # Procesar imagen para asegurar calidad (mínimo 300x300, preferiblemente cuadrada)
+        try:
+            from PIL import Image
+            import io
+            img = Image.open(io.BytesIO(image_content))
+            width, height = img.size
+            original_format = img.format
+            
+            print(f"Imagen original: {width}x{height}, formato: {original_format}")
+            
+            # Si la imagen es muy pequeña (menos de 300x300), redimensionar
+            min_size = 300  # Reducido de 500 a 300 para ser más tolerante
+            if width < min_size or height < min_size:
+                # Redimensionar manteniendo aspecto
+                if width < height:
+                    new_width = min_size
+                    new_height = int(height * (min_size / width))
+                else:
+                    new_height = min_size
+                    new_width = int(width * (min_size / height))
+                
+                print(f"Redimensionando a: {new_width}x{new_height}")
+                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                width, height = new_width, new_height
+            
+            # Si no es cuadrada, recortar al centro (con tolerancia del 10%)
+            aspect_ratio = width / height if height > 0 else 1
+            if abs(aspect_ratio - 1.0) > 0.10:  # 10% de tolerancia (más permisivo)
+                size = min(width, height)
+                left = (width - size) // 2
+                top = (height - size) // 2
+                print(f"Recortando a cuadrado: {size}x{size} desde ({left}, {top})")
+                img = img.crop((left, top, left + size, top + size))
+            
+            # Convertir a JPEG para consistencia
+            output = io.BytesIO()
+            # Si la imagen tiene transparencia, convertir a RGB
+            if img.mode in ('RGBA', 'LA', 'P'):
+                rgb_img = Image.new('RGB', img.size, (0, 0, 0))
+                if img.mode == 'P':
+                    img = img.convert('RGBA')
+                rgb_img.paste(img, mask=img.split()[-1] if img.mode == 'RGBA' else None)
+                img = rgb_img
+            
+            img.save(output, format='JPEG', quality=90)
+            image_content = output.getvalue()
+            print(f"Imagen procesada: {len(image_content)} bytes")
+        except Exception as e:
+            print(f"Error al procesar imagen: {e}")
+            import traceback
+            traceback.print_exc()
+            # Continuar con la imagen original si falla el procesamiento
+            print("Usando imagen original sin procesar")
         
         # Generar nombre de archivo seguro
         safe_titulo = re.sub(r'[^\w\s-]', '', disco_titulo).strip()[:50]
@@ -237,7 +294,7 @@ def descargar_portada(url: str, disco_titulo: str, artista_nombre: str) -> Optio
         safe_titulo = re.sub(r'[-\s]+', '-', safe_titulo)
         safe_artista = re.sub(r'[-\s]+', '-', safe_artista)
         
-        # Obtener extensión de la URL
+        # Obtener extensión de la URL o usar JPEG por defecto
         ext = '.jpg'
         if '.png' in url.lower():
             ext = '.png'
@@ -246,53 +303,14 @@ def descargar_portada(url: str, disco_titulo: str, artista_nombre: str) -> Optio
         
         filename = f"{safe_titulo}_{safe_artista}{ext}"
         
-        # Crear ruta de destino
-        media_path = os.path.join('discos', safe_artista, filename)
-        
-        # Leer contenido de la imagen
-        image_content = response.content
-        
-        # Verificar que sea una imagen válida (mínimo 500x500)
-        try:
-            from PIL import Image
-            import io
-            img = Image.open(io.BytesIO(image_content))
-            width, height = img.size
-            
-            # Si no es cuadrada o es muy pequeña, intentar recortar/redimensionar
-            if width < 500 or height < 500:
-                # Redimensionar manteniendo aspecto
-                if width < height:
-                    new_width = 500
-                    new_height = int(height * (500 / width))
-                else:
-                    new_height = 500
-                    new_width = int(width * (500 / height))
-                
-                img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                
-                # Si no es cuadrada, recortar al centro
-                if abs(width - height) > width * 0.05:  # 5% de tolerancia
-                    size = min(new_width, new_height)
-                    left = (new_width - size) // 2
-                    top = (new_height - size) // 2
-                    img = img.crop((left, top, left + size, top + size))
-                
-                # Convertir a bytes
-                output = io.BytesIO()
-                img.save(output, format='JPEG', quality=95)
-                image_content = output.getvalue()
-        except Exception as e:
-            print(f"Error al procesar imagen: {e}")
-            # Continuar con la imagen original si falla el procesamiento
-        
-        # Guardar archivo
-        file = ContentFile(image_content)
-        saved_path = default_storage.save(media_path, file)
-        
-        return saved_path
+        # Devolver ContentFile para asignar directamente al ImageField
+        file = ContentFile(image_content, name=filename)
+        print(f"Portada descargada y preparada: {filename} ({len(image_content)} bytes)")
+        return file
         
     except Exception as e:
         print(f"Error al descargar portada: {e}")
+        import traceback
+        traceback.print_exc()
         return None
 

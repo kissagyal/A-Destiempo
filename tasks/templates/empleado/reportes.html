@@ -1,0 +1,153 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Panel de Reportes - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-chart-line me-2"></i>Panel de Reportes
+            </h1>
+            <p class="text-muted">Estadísticas y análisis de ventas</p>
+        </div>
+    </div>
+
+    <!-- Estadísticas principales -->
+    <div class="row mb-4">
+        <div class="col-md-4 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">${{ total_ganancias|floatformat:2 }}</h2>
+                    <p class="mb-0">Ganancias Totales</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ total_pedidos }}</h2>
+                    <p class="mb-0">Pedidos Completados</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h2 class="mb-0">{{ usuarios_activos }}</h2>
+                    <p class="mb-0">Usuarios Activos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Compras recientes -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-shopping-bag me-2"></i>Compras Recientes
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if compras_recientes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dark">
+                            <thead>
+                                <tr>
+                                    <th class="text-white">Pedido</th>
+                                    <th class="text-white">Cliente</th>
+                                    <th class="text-white">Fecha</th>
+                                    <th class="text-white">Items</th>
+                                    <th class="text-white">Total</th>
+                                    <th class="text-white">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for pedido in compras_recientes %}
+                                <tr>
+                                    <td class="text-white">
+                                        <a href="{% url 'detalle_pedido_vendedor' pedido.id %}" class="text-decoration-none text-primary">
+                                            <strong>#{{ pedido.numero_pedido }}</strong>
+                                        </a>
+                                    </td>
+                                    <td class="text-white">{{ pedido.cliente.username }}</td>
+                                    <td class="text-white">{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</td>
+                                    <td class="text-white">{{ pedido.items.count }}</td>
+                                    <td class="price text-white">${{ pedido.total|floatformat:2 }}</td>
+                                    <td>
+                                        <span class="badge 
+                                            {% if pedido.estado == 'pendiente' %}bg-warning
+                                            {% elif pedido.estado == 'procesando' %}bg-info
+                                            {% elif pedido.estado == 'en_camino' %}bg-primary
+                                            {% elif pedido.estado == 'enviado' %}bg-success
+                                            {% elif pedido.estado == 'completado' %}bg-success
+                                            {% elif pedido.estado == 'cancelado' %}bg-danger
+                                            {% else %}bg-secondary{% endif %}">
+                                            {{ pedido.get_estado_display }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-light">No hay compras registradas</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top productos más vendidos -->
+    {% if items_mas_vendidos %}
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-trophy me-2"></i>Productos Más Vendidos
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover table-dark">
+                            <thead>
+                                <tr>
+                                    <th class="text-white">Producto</th>
+                                    <th class="text-white">Total Vendido</th>
+                                    <th class="text-white">Ganancia Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items_mas_vendidos %}
+                                <tr>
+                                    <td class="text-white">
+                                        {% if item.disco__titulo %}
+                                            <strong>{{ item.disco__titulo }}</strong> - {{ item.disco__artista__nombre|default:"-" }}
+                                        {% elif item.instrumento__nombre %}
+                                            <strong>{{ item.instrumento__nombre }}</strong> - {{ item.instrumento__marca|default:"-" }}
+                                        {% elif item.refaccion__nombre %}
+                                            <strong>{{ item.refaccion__nombre }}</strong> - {{ item.refaccion__marca|default:"-" }}
+                                        {% else %}
+                                            Producto eliminado
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-white">{{ item.total_vendido|default:0 }}</td>
+                                    <td class="price text-white">${{ item.total_ganancia|default:0|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

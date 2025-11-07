@@ -1,0 +1,139 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Pedido #{{ pedido.numero_pedido }} - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'inicio' %}" class="text-muted">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mis_pedidos' %}" class="text-muted">Mis Pedidos</a></li>
+                    <li class="breadcrumb-item active text-light">Pedido #{{ pedido.numero_pedido }}</li>
+                </ol>
+            </nav>
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-receipt me-2"></i>Pedido #{{ pedido.numero_pedido }}
+            </h1>
+            <p class="text-muted">Fecha: {{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-shopping-bag me-2"></i>Items del Pedido</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-dark">
+                            <thead>
+                                <tr>
+                                    <th class="text-white">Producto</th>
+                                    <th class="text-white">Cantidad</th>
+                                    <th class="text-white">Precio Unitario</th>
+                                    <th class="text-white">Subtotal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in pedido.items.all %}
+                                <tr>
+                                    <td class="text-white">
+                                        {% if item.disco %}
+                                            <strong>{{ item.disco.titulo }}</strong><br>
+                                            <small class="text-primary">{{ item.disco.artista.nombre }}</small>
+                                        {% elif item.instrumento %}
+                                            <strong>{{ item.instrumento.nombre }}</strong><br>
+                                            <small class="text-primary">{{ item.instrumento.marca }}</small>
+                                        {% elif item.refaccion %}
+                                            <strong>{{ item.refaccion.nombre }}</strong><br>
+                                            <small class="text-primary">{{ item.refaccion.marca }}</small>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-white">{{ item.cantidad }}</td>
+                                    <td class="text-white">${{ item.precio_unitario|floatformat:2 }}</td>
+                                    <td class="text-white">${{ item.subtotal|floatformat:2 }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-truck me-2"></i>Información de Envío</h5>
+                </div>
+                <div class="card-body">
+                    <p><strong>Nombre:</strong> {{ pedido.nombre_completo }}</p>
+                    <p><strong>Dirección:</strong> {{ pedido.direccion }}</p>
+                    <p><strong>Ciudad:</strong> {{ pedido.ciudad }}</p>
+                    {% if pedido.codigo_postal %}
+                    <p><strong>Código Postal:</strong> {{ pedido.codigo_postal }}</p>
+                    {% endif %}
+                    <p><strong>Teléfono:</strong> {{ pedido.telefono }}</p>
+                    <p><strong>Email:</strong> {{ pedido.email }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card sticky-top" style="top: 20px;">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Resumen</h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-2"><strong>Estado:</strong></p>
+                    <span class="badge 
+                        {% if pedido.estado == 'pendiente' %}bg-warning
+                        {% elif pedido.estado == 'procesando' %}bg-info
+                        {% elif pedido.estado == 'en_camino' %}bg-primary
+                        {% elif pedido.estado == 'enviado' %}bg-success
+                        {% elif pedido.estado == 'completado' %}bg-success
+                        {% elif pedido.estado == 'cancelado' %}bg-danger
+                        {% else %}bg-secondary{% endif %} mb-3" style="font-size: 1rem;">
+                        {{ pedido.get_estado_display }}
+                    </span>
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Subtotal:</span>
+                        <span class="text-light">${{ pedido.subtotal|floatformat:2 }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">IVA (16%):</span>
+                        <span class="text-light">${{ pedido.impuestos|floatformat:2 }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-4">
+                        <strong class="text-light">Total:</strong>
+                        <strong class="price fs-4">${{ pedido.total|floatformat:2 }}</strong>
+                    </div>
+                    
+                    <p class="mb-2"><strong>Método de Pago:</strong></p>
+                    <p class="mb-3">{{ pedido.get_metodo_pago_display }}</p>
+                    
+                    <p class="mb-2"><strong>Fecha de Pedido:</strong></p>
+                    <p class="mb-3">{{ pedido.fecha_pedido|date:"d/m/Y H:i" }}</p>
+                    
+                    {% if pedido.fecha_actualizacion %}
+                    <p class="mb-2"><strong>Última Actualización:</strong></p>
+                    <p class="mb-0">{{ pedido.fecha_actualizacion|date:"d/m/Y H:i" }}</p>
+                    {% endif %}
+                    
+                    <hr>
+                    <a href="{% url 'ver_factura' pedido.id %}" class="btn btn-outline-primary w-100" target="_blank">
+                        <i class="fas fa-file-pdf me-2"></i>Ver Factura
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -13,6 +13,7 @@
     <!-- CSS moderno -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
     <link href="{% static 'css/style.css' %}" rel="stylesheet">
     
     {% block extra_css %}{% endblock %}
@@ -37,6 +38,7 @@
                             <i class="fas fa-home me-1"></i>Inicio
                         </a>
                     </li>
+                    {% if not user_profile or user_profile.tipo_usuario != 'vendedor' %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'lista_discos' %}active{% endif %}" href="{% url 'lista_discos' %}">
                             <i class="fas fa-compact-disc me-1"></i>Discos
@@ -47,10 +49,22 @@
                             <i class="fas fa-guitar me-1"></i>Instrumentos
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'lista_refacciones' %}active{% endif %}" href="{% url 'lista_refacciones' %}">
+                            <i class="fas fa-cog me-1"></i>Refacciones
+                        </a>
+                    </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'carrito' %}active{% endif %}" href="{% url 'carrito' %}">
                             <i class="fas fa-shopping-cart me-1"></i>Carrito
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.resolver_match.url_name == 'panel_empleado' %}active{% endif %}" href="{% url 'panel_empleado' %}">
+                            <i class="fas fa-tachometer-alt me-1"></i>Panel de Control
                         </a>
                     </li>
                     {% endif %}
@@ -70,6 +84,14 @@
                                 <i class="fas fa-user me-1"></i>{{ user.username }}
                             </a>
                             <ul class="dropdown-menu dropdown-menu-dark">
+                                {% if not user_profile or user_profile.tipo_usuario != 'vendedor' %}
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'mis_favoritos' %}">
+                                        <i class="fas fa-heart me-1"></i>Favoritos
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
                                 <li>
                                     <form id="logout-form" method="post" action="{% url 'logout' %}" style="display:inline;">
                                         {% csrf_token %}
@@ -149,15 +171,88 @@
 
     <!-- JavaScript -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Mensajes Django convertidos a SweetAlert -->
+    {% if messages %}
+    <script>
+        {% for message in messages %}
+            {% if message.tags == 'success' %}
+                Swal.fire({
+                    icon: 'success',
+                    title: '¡Éxito!',
+                    text: '{{ message|safe }}',
+                    confirmButtonColor: '#00d4aa',
+                    background: '#1a1a1a',
+                    color: '#ffffff',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: true
+                });
+            {% elif message.tags == 'error' %}
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '{{ message|safe }}',
+                    confirmButtonColor: '#ff6b35',
+                    background: '#1a1a1a',
+                    color: '#ffffff'
+                });
+            {% elif message.tags == 'warning' %}
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Advertencia',
+                    text: '{{ message|safe }}',
+                    confirmButtonColor: '#00d4aa',
+                    background: '#1a1a1a',
+                    color: '#ffffff'
+                });
+            {% elif message.tags == 'info' %}
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Información',
+                    text: '{{ message|safe }}',
+                    confirmButtonColor: '#00d4aa',
+                    background: '#1a1a1a',
+                    color: '#ffffff'
+                });
+            {% else %}
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Mensaje',
+                    text: '{{ message|safe }}',
+                    confirmButtonColor: '#00d4aa',
+                    background: '#1a1a1a',
+                    color: '#ffffff'
+                });
+            {% endif %}
+        {% endfor %}
+    </script>
+    {% endif %}
+    
     {% block extra_js %}
     <script>
     document.addEventListener("DOMContentLoaded", function() {
       const btn = document.getElementById("btn-logout-navbar");
       if (btn) {
-        btn.onclick = function() {
-          if (confirm("¿Realmente deseas cerrar sesión?")) {
-            document.getElementById("logout-form").submit();
-          }
+        btn.onclick = function(e) {
+          e.preventDefault();
+          Swal.fire({
+            title: '¿Cerrar sesión?',
+            text: '¿Realmente deseas cerrar sesión?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#00d4aa',
+            cancelButtonColor: '#ff6b35',
+            background: '#1a1a1a',
+            color: '#ffffff',
+            confirmButtonText: 'Sí, cerrar sesión',
+            cancelButtonText: 'Cancelar'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              document.getElementById("logout-form").submit();
+            }
+          });
         }
       }
     });

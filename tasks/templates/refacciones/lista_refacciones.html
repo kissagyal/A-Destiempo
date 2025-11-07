@@ -1,0 +1,106 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Refacciones - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-cog me-2"></i>Catálogo de Refacciones
+            </h1>
+            <p class="text-muted">Encuentra las refacciones perfectas para tus instrumentos</p>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filter-section">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Buscar</label>
+                <input type="text" class="form-control" id="search" name="search" 
+                       value="{{ search_actual|default:'' }}" placeholder="Marca, modelo o nombre...">
+            </div>
+            <div class="col-md-4">
+                <label for="categoria" class="form-label">Categoría</label>
+                <select class="form-select" id="categoria" name="categoria">
+                    <option value="">Todas las categorías</option>
+                    {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}" {% if categoria_actual == categoria.id|stringformat:"s" %}selected{% endif %}>
+                            {{ categoria.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end gap-2">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-search"></i>
+                </button>
+                <a href="{% url 'lista_refacciones' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-times"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Resultados -->
+    <div class="row">
+        {% if refacciones %}
+            {% for refaccion in refacciones %}
+            <div class="col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 fade-in-up">
+                    <a href="{% url 'detalle_refaccion' refaccion.id %}" class="text-decoration-none">
+                        {% if refaccion.imagen_principal %}
+                            <img src="{{ refaccion.imagen_principal.url }}" class="card-img-top" alt="{{ refaccion.nombre }}">
+                        {% else %}
+                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 250px;">
+                                <i class="fas fa-cog fa-4x text-muted"></i>
+                            </div>
+                        {% endif %}
+                    </a>
+                    
+                    <div class="card-body d-flex flex-column">
+                        <h5 class="card-title text-light">{{ refaccion.nombre }}</h5>
+                        <p class="card-text text-primary fw-bold mb-2">{{ refaccion.marca }}</p>
+                        {% if refaccion.modelo_compatible %}
+                            <p class="card-text text-muted small mb-2">Compatible con: {{ refaccion.modelo_compatible }}</p>
+                        {% endif %}
+                        
+                        <div class="mb-2">
+                            <span class="badge bg-info">{{ refaccion.categoria.nombre }}</span>
+                        </div>
+                        
+                        <p class="card-text text-muted small mb-3">
+                            {% if refaccion.tiene_stock %}
+                                <span class="text-success">
+                                    <i class="fas fa-check-circle me-1"></i>{{ refaccion.stock_total }} disponibles
+                                </span>
+                            {% else %}
+                                <span class="text-danger">
+                                    <i class="fas fa-times-circle me-1"></i>Agotado
+                                </span>
+                            {% endif %}
+                        </p>
+                        
+                        <div class="mt-auto d-flex justify-content-between align-items-center">
+                            <span class="price fs-5">${{ refaccion.precio|floatformat:2 }}</span>
+                            <a href="{% url 'detalle_refaccion' refaccion.id %}" class="btn btn-outline-primary btn-sm">
+                                Ver Detalles
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-cog fa-5x text-muted mb-4"></i>
+                <h3 class="text-light mb-3">No se encontraron refacciones</h3>
+                <p class="text-muted">Intenta ajustar los filtros de búsqueda.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
