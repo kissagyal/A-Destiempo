@@ -4,218 +4,143 @@
 {% block title %}{{ disco.titulo }} - {{ disco.artista.nombre }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-lg-5">
-            <div class="product-detail">
-                {% if disco.portada %}
-                    <img src="{{ disco.portada.url }}" class="img-fluid rounded mb-4" alt="{{ disco.titulo }}" style="width: 100%; height: auto; object-fit: contain; max-width: 100%;">
-                {% else %}
-                    <div class="d-flex align-items-center justify-content-center bg-secondary rounded mb-4" style="height: 400px;">
-                        <i class="fas fa-compact-disc fa-8x text-muted"></i>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="col-lg-7">
-            <div class="product-detail">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
+<div class="container-fluid disco-detail-hero">
+    <div class="container">
+        <!-- Breadcrumb y Títulos Comprimidos -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <nav aria-label="breadcrumb" class="mb-1">
+                    <ol class="breadcrumb breadcrumb-sm">
                         <li class="breadcrumb-item"><a href="{% url 'inicio' %}" class="text-muted">Inicio</a></li>
                         <li class="breadcrumb-item"><a href="{% url 'lista_discos' %}" class="text-muted">Discos</a></li>
                         <li class="breadcrumb-item active text-light">{{ disco.titulo }}</li>
                     </ol>
                 </nav>
-                
-                <h1 class="display-6 text-gradient mb-2">{{ disco.titulo }}</h1>
-                <h3 class="text-primary mb-4">{{ disco.artista.nombre }}</h3>
-                
-                <!-- Información del producto -->
-                <div class="mb-4">
-                    <div class="mb-3">
-                        <strong class="text-primary d-block mb-1">Formato:</strong>
-                        <span class="badge bg-info">{{ disco.get_formato_display }}</span>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <strong class="text-primary d-block mb-1">Año:</strong>
-                        <span class="text-white">{{ disco.año_lanzamiento|default:"-" }}</span>
-                    </div>
-                    
-                    {% if disco.genero %}
-                    <div class="mb-3">
-                        <strong class="text-primary d-block mb-1">Género:</strong>
-                        <span class="badge bg-secondary">{{ disco.genero.nombre }}</span>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="mb-3">
-                        <strong class="text-primary d-block mb-1">Precio:</strong>
-                        <span class="price fs-4 text-white">${{ disco.precio|floatformat:2 }}</span>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <strong class="text-primary d-block mb-1">Stock:</strong>
-                        {% if stock_por_formato %}
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for formato, stock in stock_por_formato.items %}
-                                <span class="badge bg-success" style="font-size: 0.9rem;">
-                                    <i class="fas fa-check-circle me-1"></i>
-                                    {{ formato|capfirst }}: {{ stock }} unidades
-                                </span>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <span class="text-danger">
-                                <i class="fas fa-times-circle me-1"></i>Agotado
-                            </span>
-                        {% endif %}
-                    </div>
-                </div>
-                
-                {% if disco.descripcion %}
-                <div class="mb-4">
-                    <h5 class="text-gradient mb-3">Descripción</h5>
-                    <p class="text-light">{{ disco.descripcion }}</p>
-                </div>
-                {% endif %}
-                
-                <!-- Botones de acción -->
-                <div class="d-flex flex-wrap gap-3 mt-4">
-                    {% if disco.tiene_stock %}
-                        {% if user.is_authenticated %}
-                            <form method="post" action="{% url 'agregar_carrito_disco' disco.id %}" class="d-inline">
-                                {% csrf_token %}
-                                <input type="hidden" name="cantidad" value="1">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
-                                </button>
-                            </form>
-                        {% else %}
-                            <button type="button" class="btn btn-primary btn-lg" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
-                                <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
-                            </button>
-                        {% endif %}
-                    {% else %}
-                        <button class="btn btn-secondary btn-lg" disabled>
-                            <i class="fas fa-times-circle me-2"></i>Agotado
-                        </button>
-                    {% endif %}
-                    {% if user.is_authenticated %}
-                        {% if es_favorito %}
-                            <form method="post" action="{% url 'quitar_favorito_disco' disco.id %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger btn-lg">
-                                    <i class="fas fa-heart-broken me-2"></i>Quitar de Favoritos
-                                </button>
-                            </form>
-                        {% else %}
-                            <form method="post" action="{% url 'agregar_favorito_disco' disco.id %}" class="d-inline">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-primary btn-lg">
-                                    <i class="fas fa-heart me-2"></i>Agregar a Favoritos
-                                </button>
-                            </form>
-                        {% endif %}
-                    {% else %}
-                        <button type="button" class="btn btn-outline-primary btn-lg" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
-                            <i class="fas fa-heart me-2"></i>Favoritos
-                        </button>
-                    {% endif %}
-                </div>
+                <h1 class="display-6 text-gradient mb-0" style="font-size: 2rem;">{{ disco.titulo }}</h1>
+                <h3 class="text-primary" style="font-size: 1.3rem;">{{ disco.artista.nombre }}</h3>
             </div>
         </div>
-    </div>
-    
-    <!-- Discos Relacionados -->
-    {% if discos_relacionados %}
-    <div class="row mt-5">
-        <div class="col-12">
-            <h4 class="text-gradient mb-4">
-                <i class="fas fa-compact-disc me-2"></i>Más de {{ disco.artista.nombre }}
-            </h4>
+        
+        <!-- Contenedor Principal: Imagen + Info (SIN SCROLLEAR) -->
+        <div class="row align-items-center g-3">
+            <!-- IMAGEN (Izquierda) -->
+            <div class="col-lg-4">
+                {% if disco.portada %}
+                    <div class="disco-detail-compact-image">
+                        <img src="{{ disco.portada.url }}" class="disco-detail-image" alt="{{ disco.titulo }}">
+                    </div>
+                {% else %}
+                    <div class="disco-detail-compact-image d-flex align-items-center justify-content-center">
+                        <i class="fas fa-compact-disc fa-6x text-muted"></i>
+                    </div>
+                {% endif %}
+            </div>
             
-            <div class="row">
-                {% for disco_rel in discos_relacionados %}
-                <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card h-100">
-                        <a href="{% url 'detalle_disco' disco_rel.id %}" class="text-decoration-none">
-                            {% if disco_rel.portada %}
-                                <img src="{{ disco_rel.portada.url }}" class="card-img-top" alt="{{ disco_rel.titulo }}">
-                            {% else %}
-                                <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 200px;">
-                                    <i class="fas fa-compact-disc fa-3x text-muted"></i>
-                                </div>
-                            {% endif %}
-                        </a>
-                        
-                        <div class="card-body">
-                            <h6 class="card-title text-light">{{ disco_rel.titulo }}</h6>
-                            <p class="card-text text-primary fw-bold small">{{ disco_rel.artista.nombre }}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="price small">${{ disco_rel.precio|floatformat:2 }}</span>
-                                <span class="badge bg-info small">{{ disco_rel.get_formato_display }}</span>
+            <!-- INFORMACIÓN COMPRIMIDA (Derecha) -->
+            <div class="col-lg-8">
+                <div class="disco-detail-compact-info">
+                    <!-- Grid de Información -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="info-item">
+                                <span class="info-label">Formato</span>
+                                <span class="badge bg-info">{{ disco.get_formato_display }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="info-item">
+                                <span class="info-label">Año</span>
+                                <span class="info-value">{{ disco.año_lanzamiento|default:"-" }}</span>
+                            </div>
+                        </div>
+                        {% if disco.genero %}
+                        <div class="col-6 col-md-3">
+                            <div class="info-item">
+                                <span class="info-label">Género</span>
+                                <span class="badge bg-secondary">{{ disco.genero.nombre }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="col-6 col-md-3">
+                            <div class="info-item">
+                                <span class="info-label">Stock</span>
+                                {% if stock_por_formato %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i>
+                                        {% for formato, stock in stock_por_formato.items %}{{ stock }}{% endfor %}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">Agotado</span>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
+
+                    <!-- Línea separadora -->
+                    <hr class="my-2">
+
+                    <!-- Precio Grande -->
+                    <div class="mb-3">
+                        <span class="info-label d-block mb-1">Precio</span>
+                        <span class="price-large">${{ disco.precio|floatformat:2 }}</span>
+                    </div>
+
+                    <!-- Descripción (si existe) -->
+                    {% if disco.descripcion %}
+                    <div class="mb-3">
+                        <p class="text-muted small mb-0">{{ disco.descripcion|truncatewords:20 }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Botones de Acción (Compactos) -->
+                    <div class="d-flex gap-2 flex-wrap">
+                        {% if disco.tiene_stock %}
+                            {% if user.is_authenticated %}
+                                <form method="post" action="{% url 'agregar_carrito_disco' disco.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="cantidad" value="1">
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-shopping-cart me-1"></i>Carrito
+                                    </button>
+                                </form>
+                            {% else %}
+                                <button type="button" class="btn btn-primary btn-sm" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
+                                    <i class="fas fa-shopping-cart me-1"></i>Carrito
+                                </button>
+                            {% endif %}
+                        {% else %}
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-times-circle me-1"></i>Agotado
+                            </button>
+                        {% endif %}
+
+                        {% if user.is_authenticated %}
+                            {% if es_favorito %}
+                                <form method="post" action="{% url 'quitar_favorito_disco' disco.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-heart-broken me-1"></i>Quitar Fav
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="{% url 'agregar_favorito_disco' disco.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-heart me-1"></i>Favoritos
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% else %}
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
+                                <i class="fas fa-heart me-1"></i>Favoritos
+                            </button>
+                        {% endif %}
+                    </div>
                 </div>
-                {% endfor %}
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    .product-detail img {
-        width: 100%;
-        height: auto;
-        object-fit: contain;
-        max-width: 100%;
-        display: block;
-        border-radius: 10px;
-    }
-    
-    .product-detail {
-        display: flex;
-        justify-content: center;
-        align-items: flex-start;
-    }
-    
-    /* Asegurar que la información se muestre correctamente */
-    .card.bg-dark {
-        background-color: var(--dark-bg) !important;
-        border: 1px solid var(--border-color) !important;
-    }
-    
-    .card.bg-dark .card-body {
-        padding: 1.5rem;
-    }
-    
-    /* Organización clara de la información - cada campo en su propia línea */
-    .product-detail .mb-3 {
-        margin-bottom: 1.5rem !important;
-    }
-    
-    .product-detail strong {
-        display: block;
-        margin-bottom: 0.5rem;
-        font-size: 1rem;
-    }
-    
-    .product-detail .badge,
-    .product-detail .price,
-    .product-detail span:not(.badge) {
-        display: inline-block;
-        margin-top: 0.25rem;
-    }
-    
-    /* Botones alineados horizontalmente */
-    .d-flex.flex-wrap.gap-3 {
-        gap: 1rem !important;
-    }
-</style>
-{% endblock %}
+

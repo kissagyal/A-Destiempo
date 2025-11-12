@@ -3,7 +3,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.core.exceptions import ValidationError
 from PIL import Image
-from .models import Disco, Instrumento, Artista, Genero, CategoriaInstrumento, Refaccion, CategoriaRefaccion
+from .models import Disco, Instrumento, Artista, Genero, CategoriaInstrumento, Refaccion, CategoriaRefaccion, HeroBanner, CompatibilidadGeneral
 import requests
 import re
 from datetime import datetime
@@ -114,6 +114,49 @@ class ArtistaField(forms.ModelChoiceField):
             return super().clean(value)
         return None
 
+
+class HeroBannerForm(forms.ModelForm):
+    class Meta:
+        model = HeroBanner
+        fields = [
+            'imagen',
+            'titulo',
+            'subtitulo',
+            'boton_1_texto',
+            'boton_1_url',
+            'boton_2_texto',
+            'boton_2_url'
+        ]
+        widgets = {
+            'titulo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Título principal del banner'}),
+            'subtitulo': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Texto descriptivo'}),
+            'boton_1_texto': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Texto botón principal'}),
+            'boton_1_url': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'URL botón principal (opcional)'}),
+            'boton_2_texto': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Texto segundo botón'}),
+            'boton_2_url': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'URL segundo botón (opcional)'}),
+        }
+        labels = {
+            'imagen': 'Imagen del banner',
+            'titulo': 'Título principal',
+            'subtitulo': 'Subtítulo',
+            'boton_1_texto': 'Texto del botón principal',
+            'boton_1_url': 'Enlace del botón principal',
+            'boton_2_texto': 'Texto del botón secundario',
+            'boton_2_url': 'Enlace del botón secundario',
+        }
+
+    def clean(self):
+        cleaned = super().clean()
+        for key in ['boton_1_texto', 'boton_1_url', 'boton_2_texto', 'boton_2_url']:
+            value = cleaned.get(key)
+            if isinstance(value, str):
+                cleaned[key] = value.strip()
+        return cleaned
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['imagen'].widget.attrs.update({'class': 'form-control'})
+
 class DiscoForm(forms.ModelForm):
     # Campo de artista (texto libre con autocomplete)
     artista_nombre = forms.CharField(
@@ -136,33 +179,13 @@ class DiscoForm(forms.ModelForm):
         widget=forms.HiddenInput(attrs={'id': 'id_artista_id'})
     )
     
-    # Stock por formato
-    stock_vinilo = forms.IntegerField(
-        required=False,
+    # Stock para el formato seleccionado
+    stock = forms.IntegerField(
+        required=True,
         min_value=0,
         initial=0,
-        label='Stock Vinilo',
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    stock_cd = forms.IntegerField(
-        required=False,
-        min_value=0,
-        initial=0,
-        label='Stock CD',
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    stock_digital = forms.IntegerField(
-        required=False,
-        min_value=0,
-        initial=0,
-        label='Stock Digital',
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
-    )
-    stock_casete = forms.IntegerField(
-        required=False,
-        min_value=0,
-        initial=0,
-        label='Stock Casete',
+        label='Cantidad',
+        help_text='Cantidad disponible para el formato seleccionado',
         widget=forms.NumberInput(attrs={'class': 'form-control'})
     )
     
@@ -222,22 +245,21 @@ class DiscoForm(forms.ModelForm):
                 self.initial['artista'] = self.instance.artista
                 self.fields['artista'].initial = self.instance.artista
             
-            # Mostrar stock actual por formato
+            # Mostrar stock actual para el formato del disco
             from .models import Inventario, Sucursal
             try:
                 sucursal_principal = Sucursal.objects.get(nombre='Principal')
-                for formato in ['vinilo', 'cd', 'digital', 'casete']:
-                    try:
-                        inventario = Inventario.objects.get(
-                            producto_disco=self.instance,
-                            formato_disco=formato,
-                            sucursal=sucursal_principal
-                        )
-                        self.fields[f'stock_{formato}'].initial = inventario.stock_disponible
-                    except Inventario.DoesNotExist:
-                        pass
+                try:
+                    inventario = Inventario.objects.get(
+                        producto_disco=self.instance,
+                        formato_disco=self.instance.formato,
+                        sucursal=sucursal_principal
+                    )
+                    self.fields['stock'].initial = inventario.stock_disponible
+                except Inventario.DoesNotExist:
+                    self.fields['stock'].initial = 0
             except Sucursal.DoesNotExist:
-                pass
+                self.fields['stock'].initial = 0
     
     def clean_portada(self):
         portada = self.cleaned_data.get('portada')
@@ -359,25 +381,27 @@ class DiscoForm(forms.ModelForm):
         if commit:
             disco.save()
             
-            # Guardar stock por formato
+            # Guardar stock para el formato seleccionado
             from .models import Inventario, Sucursal
             try:
                 sucursal_principal = Sucursal.objects.get(nombre='Principal')
             except Sucursal.DoesNotExist:
                 sucursal_principal = Sucursal.objects.create(nombre='Principal', activa=True)
             
-            for formato in ['vinilo', 'cd', 'digital', 'casete']:
-                stock = self.cleaned_data.get(f'stock_{formato}', 0) or 0
-                if stock > 0:
-                    inventario, created = Inventario.objects.get_or_create(
-                        producto_disco=disco,
-                        formato_disco=formato,
-                        sucursal=sucursal_principal,
-                        defaults={'stock_disponible': stock}
-                    )
-                    if not created:
-                        inventario.stock_disponible = stock
-                        inventario.save()
+            # Obtener el formato del disco
+            formato = disco.formato
+            stock = self.cleaned_data.get('stock', 0) or 0
+            
+            # Guardar o actualizar el inventario para este formato
+            inventario, created = Inventario.objects.get_or_create(
+                producto_disco=disco,
+                formato_disco=formato,
+                sucursal=sucursal_principal,
+                defaults={'stock_disponible': stock}
+            )
+            if not created:
+                inventario.stock_disponible = stock
+                inventario.save()
         
         return disco
 
@@ -400,11 +424,12 @@ class InstrumentoForm(forms.ModelForm):
 class RefaccionForm(forms.ModelForm):
     class Meta:
         model = Refaccion
-        fields = ['nombre', 'marca', 'categoria', 'modelo_compatible', 'precio', 'stock', 'descripcion', 'imagen_principal', 'activo']
+        fields = ['nombre', 'marca', 'categoria', 'compatibilidad_general', 'modelo_compatible', 'precio', 'stock', 'descripcion', 'imagen_principal', 'activo']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'marca': forms.TextInput(attrs={'class': 'form-control'}),
             'categoria': forms.Select(attrs={'class': 'form-select'}),
+            'compatibilidad_general': forms.Select(attrs={'class': 'form-select'}),
             'modelo_compatible': forms.TextInput(attrs={'class': 'form-control'}),
             'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
             'stock': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
@@ -412,3 +437,23 @@ class RefaccionForm(forms.ModelForm):
             'imagen_principal': forms.FileInput(attrs={'class': 'form-control'}),
             'activo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Asegurar que existan categorías generales de compatibilidad por defecto
+        categorias_compat = [
+            'Guitarra Eléctrica',
+            'Guitarra Acústica',
+            'Bajo Eléctrico',
+            'Batería / Percusión',
+            'Teclado / Piano',
+            'Audio (Cables, Conectividad)',
+            'Sistemas Inalámbricos',
+            'Micrófonos',
+            'DJ / Controladores',
+            'Estuches / Fundas',
+            'Accesorios Universales',
+        ]
+        for nombre in categorias_compat:
+            CompatibilidadGeneral.objects.get_or_create(nombre=nombre, defaults={'nombre': nombre})
+        self.fields['compatibilidad_general'].queryset = CompatibilidadGeneral.objects.all().order_by('nombre')

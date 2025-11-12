@@ -51,7 +51,6 @@
                                 <option value="">Todos</option>
                                 <option value="vinilo" {% if formato_actual == 'vinilo' %}selected{% endif %}>Vinilo</option>
                                 <option value="cd" {% if formato_actual == 'cd' %}selected{% endif %}>CD</option>
-                                <option value="digital" {% if formato_actual == 'digital' %}selected{% endif %}>Digital</option>
                                 <option value="casete" {% if formato_actual == 'casete' %}selected{% endif %}>Casete</option>
                             </select>
                         </div>
@@ -156,7 +155,7 @@
                                             <a href="{% url 'editar_disco' disco.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="{% url 'eliminar_disco' disco.id %}" class="btn btn-outline-danger btn-sm" title="Eliminar" onclick="return confirm('¿Estás seguro de eliminar este disco?')">
+                                            <a href="{% url 'eliminar_disco' disco.id %}" class="btn btn-outline-danger btn-sm btn-eliminar-disco" title="Eliminar" data-disco-id="{{ disco.id }}" data-disco-titulo="{{ disco.titulo }}">
                                                 <i class="fas fa-trash"></i>
                                             </a>
                                         </div>
@@ -181,5 +180,47 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejar eliminación de discos con SweetAlert
+    document.querySelectorAll('.btn-eliminar-disco').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const discoId = this.getAttribute('data-disco-id');
+            const discoTitulo = this.getAttribute('data-disco-titulo');
+            const deleteUrl = this.getAttribute('href');
+            
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: `¿Estás seguro de eliminar el disco "${discoTitulo}"? Esta acción no se puede deshacer.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ff6b35',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar',
+                background: '#1a1a1a',
+                color: '#ffffff',
+                customClass: {
+                    popup: 'swal-dark',
+                    title: 'swal-title-dark',
+                    content: 'swal-content-dark',
+                    confirmButton: 'swal-confirm-dark',
+                    cancelButton: 'swal-cancel-dark'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirigir a la URL de eliminación
+                    window.location.href = deleteUrl;
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %}
 

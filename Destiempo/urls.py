@@ -31,14 +31,18 @@ urlpatterns = [
     path('instrumento/<int:instrumento_id>/', views.detalle_instrumento, name='detalle_instrumento'),
     path('refaccion/<int:refaccion_id>/', views.detalle_refaccion, name='detalle_refaccion'),
     path('panel-empleado/', views.panel_empleado, name='panel_empleado'),
+    path('panel-empleado/gestor-banner/', views.gestor_banner, name='gestor_banner'),
     path('panel-empleado/reportes/', views.panel_reportes, name='panel_reportes'),
     path('panel-empleado/clientes/', views.lista_clientes, name='lista_clientes'),
     path('panel-empleado/cliente/<int:cliente_id>/', views.detalle_cliente, name='detalle_cliente'),
+    path('panel-empleado/clientes/reporte-pdf/', views.generar_reporte_clientes_pdf, name='generar_reporte_clientes_pdf'),
     path('panel-empleado/pedidos/', views.pedidos_pendientes, name='pedidos_pendientes'),
     path('panel-empleado/pedido/<int:pedido_id>/', views.detalle_pedido_vendedor, name='detalle_pedido_vendedor'),
     # CRUDs para vendedor
     path('panel-empleado/buscar-metadatos/', views.buscar_metadatos_ajax, name='buscar_metadatos'),
     path('panel-empleado/discos/', views.lista_discos_vendedor, name='lista_discos_vendedor'),
+    path('panel-empleado/instrumentos/', views.lista_instrumentos_vendedor, name='lista_instrumentos_vendedor'),
+    path('panel-empleado/refacciones/', views.lista_refacciones_vendedor, name='lista_refacciones_vendedor'),
     path('panel-empleado/disco/crear/', views.crear_disco, name='crear_disco'),
     path('panel-empleado/disco/<int:disco_id>/editar/', views.editar_disco, name='editar_disco'),
     path('panel-empleado/disco/<int:disco_id>/eliminar/', views.eliminar_disco, name='eliminar_disco'),
@@ -67,10 +71,13 @@ urlpatterns = [
     # Pedidos del cliente
     path('mis-pedidos/', views.mis_pedidos, name='mis_pedidos'),
     path('pedido/<int:pedido_id>/', views.detalle_pedido, name='detalle_pedido'),
+    path('mis-pedidos/historial/', views.historial_pedidos, name='historial_pedidos'),
     path('pedido/<int:pedido_id>/factura/', views.ver_factura, name='ver_factura'),
     # Autenticación personalizada
     path('accounts/login/', views.login_view, name='login'),
     path('accounts/', include('django.contrib.auth.urls')),
+    # Chat Bot API
+    path('api/chat/', views.chat_bot_api, name='chat_bot_api'),
 ]
 
 # Servir archivos media en desarrollo

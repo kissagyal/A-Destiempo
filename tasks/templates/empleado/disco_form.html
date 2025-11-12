@@ -112,14 +112,26 @@
                     </div>
 
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="{{ form.precio.id_for_label }}" class="form-label">Precio *</label>
                             {{ form.precio }}
                             {% if form.precio.errors %}
                                 <div class="text-danger small mt-1">{{ form.precio.errors }}</div>
                             {% endif %}
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
+                            <label for="{{ form.stock.id_for_label }}" class="form-label">
+                                {{ form.stock.label }} *
+                            </label>
+                            {{ form.stock }}
+                            {% if form.stock.help_text %}
+                                <small class="form-text text-muted">{{ form.stock.help_text }}</small>
+                            {% endif %}
+                            {% if form.stock.errors %}
+                                <div class="text-danger small mt-1">{{ form.stock.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-4">
                             <label for="{{ form.portada.id_for_label }}" class="form-label">Portada</label>
                             {{ form.portada }}
                             {% if form.portada.errors %}
@@ -149,55 +161,6 @@
                         {% if form.descripcion.errors %}
                             <div class="text-danger small mt-1">{{ form.descripcion.errors }}</div>
                         {% endif %}
-                    </div>
-                    
-                    <!-- Stock por Formato -->
-                    <div class="mb-4">
-                        <h5 class="text-gradient mb-3">
-                            <i class="fas fa-boxes me-2"></i>Stock por Formato
-                        </h5>
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label for="{{ form.stock_vinilo.id_for_label }}" class="form-label">
-                                    {{ form.stock_vinilo.label }}
-                                </label>
-                                {{ form.stock_vinilo }}
-                                {% if form.stock_vinilo.errors %}
-                                    <div class="text-danger small mt-1">{{ form.stock_vinilo.errors }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="{{ form.stock_cd.id_for_label }}" class="form-label">
-                                    {{ form.stock_cd.label }}
-                                </label>
-                                {{ form.stock_cd }}
-                                {% if form.stock_cd.errors %}
-                                    <div class="text-danger small mt-1">{{ form.stock_cd.errors }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="{{ form.stock_digital.id_for_label }}" class="form-label">
-                                    {{ form.stock_digital.label }}
-                                </label>
-                                {{ form.stock_digital }}
-                                {% if form.stock_digital.errors %}
-                                    <div class="text-danger small mt-1">{{ form.stock_digital.errors }}</div>
-                                {% endif %}
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label for="{{ form.stock_casete.id_for_label }}" class="form-label">
-                                    {{ form.stock_casete.label }}
-                                </label>
-                                {{ form.stock_casete }}
-                                {% if form.stock_casete.errors %}
-                                    <div class="text-danger small mt-1">{{ form.stock_casete.errors }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        <small class="form-text text-muted">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Ingresa la cantidad disponible para cada formato. Puedes tener stock en múltiples formatos del mismo disco.
-                        </small>
                     </div>
 
                     <div class="mb-4">

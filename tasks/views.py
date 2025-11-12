@@ -6,18 +6,31 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from django.db.models import Q, Sum, Count
 from datetime import datetime
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST, require_http_methods
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_protect
 from django.core.mail import send_mail, EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
-from .models import Disco, Instrumento, Genero, CategoriaInstrumento, PerfilUsuario, Sucursal, Inventario, Artista, Favorito, Refaccion, CategoriaRefaccion, Pedido, ItemPedido
-from .forms import SignUpForm, DiscoForm, InstrumentoForm, RefaccionForm
+from django.urls import reverse
+import random
+from decimal import Decimal
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from .models import (Disco, Instrumento, Genero, CategoriaInstrumento, PerfilUsuario, Sucursal,
+                     Inventario, Artista, Favorito, Refaccion, CategoriaRefaccion, Pedido,
+                     ItemPedido, HeroBanner)
+from .forms import SignUpForm, DiscoForm, InstrumentoForm, RefaccionForm, HeroBannerForm
 from .decorators import login_required_with_message, empleado_required
 from .metadata_service import buscar_metadatos_disco, descargar_portada
+from .chat_bot import ChatBot
+
 
 def es_empleado(user):
     if user.is_authenticated:
@@ -33,7 +46,6 @@ def es_empleado(user):
 def login_view(request):
     """Vista personalizada de login que redirige según el tipo de usuario"""
     if request.user.is_authenticated:
-        # Si ya está logueado, redirigir según su tipo
         try:
             perfil = request.user.perfilusuario
             if perfil.tipo_usuario == 'vendedor':
@@ -48,7 +60,6 @@ def login_view(request):
             user = form.get_user()
             auth_login(request, user)
             
-            # Redirigir según el tipo de usuario
             try:
                 perfil = user.perfilusuario
                 if perfil.tipo_usuario == 'vendedor':
@@ -56,13 +67,37 @@ def login_view(request):
             except PerfilUsuario.DoesNotExist:
                 pass
             
-            # Por defecto, redirigir a la página principal
             next_url = request.GET.get('next', '/')
             return redirect(next_url)
     else:
         form = AuthenticationForm()
     
     return render(request, 'registration/login.html', {'form': form})
+
+def _seleccionar_artista_destacado(request, force_id=None):
+    """
+    Devuelve un artista aleatorio que tenga al menos un disco activo.
+    Intenta evitar repetir el mismo artista consecutivamente para el mismo visitante.
+    """
+    artistas_qs = Artista.objects.filter(discos__activo=True).distinct()
+    artistas_ids = list(artistas_qs.values_list('id', flat=True))
+    
+    if not artistas_ids:
+        return None
+    
+    if force_id and force_id in artistas_ids:
+        request.session['ultimo_artista_destacado'] = force_id
+        return artistas_qs.get(id=force_id)
+    
+    ultimo_id = request.session.get('ultimo_artista_destacado')
+    candidatos = artistas_ids.copy()
+    if ultimo_id in candidatos and len(candidatos) > 1:
+        candidatos = [aid for aid in candidatos if aid != ultimo_id]
+    
+    artista_id = random.choice(candidatos)
+    request.session['ultimo_artista_destacado'] = artista_id
+    return artistas_qs.get(id=artista_id)
+
 
 def inicio(request):
     """Vista principal que muestra los productos destacados (para todos)"""
@@ -81,12 +116,60 @@ def inicio(request):
             from django.contrib.auth import logout
             logout(request)
     
-    discos_destacados = Disco.objects.filter(activo=True)[:6]
-    instrumentos_destacados = Instrumento.objects.filter(activo=True)[:6]
+    # Seleccionar artista destacado aleatorio
+    artista_hero = _seleccionar_artista_destacado(request)
+    disco_destacado = None
+    hero_banner_config = {
+        'title': 'A Destiempo',
+        'subtitle': 'Descubre la mejor colección de discos, vinilos e instrumentos musicales. Donde la música cobra vida.',
+        'button1_text': 'Explorar Discos',
+        'button1_url': reverse('lista_discos'),
+        'button2_text': 'Ver Instrumentos',
+        'button2_url': reverse('lista_instrumentos'),
+        'background_url': None,
+    }
+    banner_personalizado = None
+    
+    if artista_hero:
+        banner_personalizado = getattr(artista_hero, 'hero_banner', None)
+
+        if banner_personalizado:
+            hero_banner_config['title'] = banner_personalizado.titulo or hero_banner_config['title']
+            hero_banner_config['subtitle'] = banner_personalizado.subtitulo or hero_banner_config['subtitle']
+            hero_banner_config['button1_text'] = banner_personalizado.boton_1_texto or hero_banner_config['button1_text']
+            hero_banner_config['button1_url'] = banner_personalizado.get_boton_1_url()
+            hero_banner_config['button2_text'] = banner_personalizado.boton_2_texto or hero_banner_config['button2_text']
+            hero_banner_config['button2_url'] = banner_personalizado.get_boton_2_url()
+            if banner_personalizado.imagen:
+                hero_banner_config['background_url'] = banner_personalizado.imagen.url
+
+        if not hero_banner_config['background_url'] and artista_hero.foto:
+            hero_banner_config['background_url'] = artista_hero.foto.url
+        
+        # Obtener un disco destacado del artista para mostrar en el hero
+        discos_del_artista = (
+            Disco.objects.filter(
+                artista=artista_hero,
+                activo=True
+            )
+            .exclude(portada__isnull=True)
+            .exclude(portada='')
+        )
+        
+        if discos_del_artista.exists():
+            disco_destacado = random.choice(list(discos_del_artista))
+    
+    # Obtener discos destacados (solo activos y con stock o disponibles)
+    discos_destacados = Disco.objects.filter(activo=True).order_by('-fecha_agregado')[:6]
+    instrumentos_destacados = Instrumento.objects.filter(activo=True).order_by('-fecha_agregado')[:6]
 
     context = {
+        'artista_hero': artista_hero,
+        'disco_destacado': disco_destacado,
         'discos_destacados': discos_destacados,
         'instrumentos_destacados': instrumentos_destacados,
+        'hero_banner_config': hero_banner_config,
+        'hero_banner_personalizado': banner_personalizado,
     }
     return render(request, 'inicio.html', context)
 
@@ -168,18 +251,6 @@ def detalle_disco(request, disco_id):
     """Vista de detalle de un disco específico"""
     disco = get_object_or_404(Disco, id=disco_id, activo=True)
     
-    # Obtener stock por formato
-    from .models import Inventario, Sucursal, get_stock_total_disco
-    stock_por_formato = {}
-    try:
-        sucursal_principal = Sucursal.objects.get(nombre='Principal')
-        for formato in ['vinilo', 'cd', 'digital', 'casete']:
-            stock = get_stock_total_disco(disco, formato=formato)
-            if stock > 0:
-                stock_por_formato[formato] = stock
-    except Sucursal.DoesNotExist:
-        pass
-    
     # Discos relacionados del mismo artista
     discos_relacionados = Disco.objects.filter(
         artista=disco.artista,
@@ -193,7 +264,6 @@ def detalle_disco(request, disco_id):
     
     context = {
         'disco': disco,
-        'stock_por_formato': stock_por_formato,
         'discos_relacionados': discos_relacionados,
         'es_favorito': es_favorito,
     }
@@ -274,7 +344,6 @@ def panel_empleado(request):
     instrumentos_recientes = Instrumento.objects.all().order_by('-fecha_agregado')[:5]
     refacciones_recientes = Refaccion.objects.all().order_by('-fecha_agregado')[:5]
     
-    # Estadísticas rápidas
     total_discos = Disco.objects.count()
     total_instrumentos = Instrumento.objects.count()
     total_refacciones = Refaccion.objects.count()
@@ -293,6 +362,57 @@ def panel_empleado(request):
     }
     return render(request, 'empleado/panel.html', context)
 
+@empleado_required
+def gestor_banner(request):
+    artistas = Artista.objects.all().order_by('nombre')
+    if not artistas.exists():
+        messages.warning(request, 'No hay artistas cargados todavía. Agrega artistas para configurar el banner.')
+        return redirect('panel_empleado')
+
+    if request.method == 'POST':
+        artista_id = request.POST.get('artista_id')
+    else:
+        artista_id = request.GET.get('artista')
+
+    if artista_id:
+        artista = get_object_or_404(Artista, id=artista_id)
+    else:
+        artista = artistas.first()
+
+    banner = getattr(artista, 'hero_banner', None)
+
+    if request.method == 'POST':
+        form = HeroBannerForm(request.POST, request.FILES, instance=banner)
+        if form.is_valid():
+            banner = form.save(commit=False)
+            banner.artista = artista
+            banner.save()
+            messages.success(request, f'Banner actualizado para {artista.nombre}.')
+            return redirect(f"{reverse('gestor_banner')}?artista={artista.id}")
+        else:
+            messages.error(request, 'Por favor corrige los errores señalados.')
+    else:
+        form = HeroBannerForm(instance=banner)
+
+    preview_config = {
+        'title': banner.titulo if banner else 'A Destiempo',
+        'subtitle': banner.subtitulo if banner else 'Descubre la mejor colección de discos, vinilos e instrumentos musicales. Donde la música cobra vida.',
+        'button1_text': banner.boton_1_texto if banner else 'Explorar Discos',
+        'button1_url': banner.get_boton_1_url() if banner else reverse('lista_discos'),
+        'button2_text': banner.boton_2_texto if banner else 'Ver Instrumentos',
+        'button2_url': banner.get_boton_2_url() if banner else reverse('lista_instrumentos'),
+        'background_url': banner.imagen.url if banner and banner.imagen else (artista.foto.url if artista.foto else '')
+    }
+
+    context = {
+        'form': form,
+        'artistas': artistas,
+        'artista_seleccionado': artista,
+        'banner': banner,
+        'preview_config': preview_config,
+    }
+    return render(request, 'empleado/gestor_banner.html', context)
+
 def helloworld(request):
     """Vista de registro de usuarios"""
     if request.method == 'POST':
@@ -307,10 +427,6 @@ def helloworld(request):
         form = SignUpForm()
     
     return render(request, 'signup.html', {'form': form})
-
-# ===========================================
-# VISTAS DE CARRITO Y COMPRA
-# ===========================================
 
 def obtener_carrito(request):
     """Obtiene el carrito de la sesión"""
@@ -400,7 +516,7 @@ def ver_carrito(request):
     """Ver carrito de compras (requiere autenticación)"""
     carrito = obtener_carrito(request)
     items = []
-    subtotal = 0
+    subtotal = Decimal('0')
     
     for item in carrito:
         producto = None
@@ -432,7 +548,7 @@ def ver_carrito(request):
         except:
             continue
     
-    impuestos = subtotal * 0.16  # IVA 16%
+    impuestos = subtotal * Decimal('0.16')  # IVA 16%
     total = subtotal + impuestos
     
     context = {
@@ -493,7 +609,7 @@ def checkout(request):
     
     # Validar que todos los items aún existan y tengan stock
     items_validos = []
-    subtotal = 0
+    subtotal = Decimal('0')
     
     for item in carrito:
         tipo = item.get('tipo')
@@ -528,7 +644,7 @@ def checkout(request):
         request.session['carrito'] = []
         return redirect('carrito')
     
-    impuestos = subtotal * 0.16
+    impuestos = subtotal * Decimal('0.16')
     total = subtotal + impuestos
     
     # Obtener datos del usuario para prellenar el formulario
@@ -599,9 +715,6 @@ def checkout(request):
     }
     return render(request, 'carrito/checkout.html', context)
 
-# ===========================================
-# VISTAS DE FAVORITOS
-# ===========================================
 
 @login_required_with_message
 @require_POST
@@ -717,9 +830,21 @@ def mis_pedidos(request):
     }
     return render(request, 'cliente/mis_pedidos.html', context)
 
-# ===========================================
-# VISTAS CRUD PARA VENDEDOR
-# ===========================================
+@login_required_with_message
+def historial_pedidos(request):
+    """Vista de historial completo de pedidos del cliente"""
+    pedidos = Pedido.objects.filter(cliente=request.user).order_by('-fecha_pedido')
+    pedidos_por_estado = pedidos.values('estado').annotate(total=Count('id'))
+    total_gastado = pedidos.aggregate(total=Sum('total'))['total'] or Decimal('0')
+
+    context = {
+        'titulo': 'Historial de Pedidos',
+        'pedidos': pedidos,
+        'resumen_estados': pedidos_por_estado,
+        'total_gastado': total_gastado,
+    }
+    return render(request, 'cliente/historial_pedidos.html', context)
+
 
 @empleado_required
 def buscar_metadatos_ajax(request):
@@ -811,6 +936,85 @@ def lista_discos_vendedor(request):
     return render(request, 'empleado/lista_discos.html', context)
 
 @empleado_required
+def lista_instrumentos_vendedor(request):
+    """Lista todos los instrumentos para el vendedor"""
+    instrumentos = Instrumento.objects.all().order_by('-fecha_agregado')
+
+    search = request.GET.get('search', '')
+    categoria_filter = request.GET.get('categoria', '')
+    estado_filter = request.GET.get('estado', '')
+    activo_filter = request.GET.get('activo', '')
+
+    if search:
+        instrumentos = instrumentos.filter(
+            Q(nombre__icontains=search) |
+            Q(marca__icontains=search) |
+            Q(modelo__icontains=search)
+        )
+
+    if categoria_filter:
+        instrumentos = instrumentos.filter(categoria_id=categoria_filter)
+
+    if estado_filter:
+        instrumentos = instrumentos.filter(estado=estado_filter)
+
+    if activo_filter != '':
+        if activo_filter == 'si':
+            instrumentos = instrumentos.filter(activo=True)
+        elif activo_filter == 'no':
+            instrumentos = instrumentos.filter(activo=False)
+
+    categorias = CategoriaInstrumento.objects.all().order_by('nombre')
+
+    context = {
+        'instrumentos': instrumentos,
+        'categorias': categorias,
+        'search_actual': search,
+        'categoria_actual': categoria_filter,
+        'estado_actual': estado_filter,
+        'activo_actual': activo_filter,
+        'titulo': 'Gestión de Instrumentos',
+    }
+    return render(request, 'empleado/lista_instrumentos.html', context)
+
+@empleado_required
+def lista_refacciones_vendedor(request):
+    """Lista todas las refacciones para el vendedor"""
+    refacciones = Refaccion.objects.all().order_by('-fecha_agregado')
+
+    search = request.GET.get('search', '')
+    categoria_filter = request.GET.get('categoria', '')
+    activo_filter = request.GET.get('activo', '')
+
+    if search:
+        refacciones = refacciones.filter(
+            Q(nombre__icontains=search) |
+            Q(marca__icontains=search) |
+            Q(modelo_compatible__icontains=search)
+        )
+
+    if categoria_filter:
+        refacciones = refacciones.filter(categoria_id=categoria_filter)
+
+    if activo_filter != '':
+        if activo_filter == 'si':
+            refacciones = refacciones.filter(activo=True)
+        elif activo_filter == 'no':
+            refacciones = refacciones.filter(activo=False)
+
+    categorias = CategoriaRefaccion.objects.all().order_by('nombre')
+
+    context = {
+        'refacciones': refacciones,
+        'categorias': categorias,
+        'search_actual': search,
+        'categoria_actual': categoria_filter,
+        'activo_actual': activo_filter,
+        'titulo': 'Gestión de Refacciones',
+    }
+    return render(request, 'empleado/lista_refacciones.html', context)
+
+@empleado_required
 def crear_disco(request):
     """Crear nuevo disco"""
     # Obtener artistas existentes para autocomplete
@@ -843,6 +1047,28 @@ def crear_disco(request):
                 # Guardar el disco con la portada
                 disco.save()
                 print(f"Disco guardado con portada: {disco.portada}")
+                
+                # Guardar stock para el formato seleccionado
+                from .models import Inventario, Sucursal
+                try:
+                    sucursal_principal = Sucursal.objects.get(nombre='Principal')
+                except Sucursal.DoesNotExist:
+                    sucursal_principal = Sucursal.objects.create(nombre='Principal', activa=True)
+                
+                # Obtener el formato del disco
+                formato = disco.formato
+                stock = form.cleaned_data.get('stock', 0) or 0
+                
+                # Guardar o actualizar el inventario para este formato
+                inventario, created = Inventario.objects.get_or_create(
+                    producto_disco=disco,
+                    formato_disco=formato,
+                    sucursal=sucursal_principal,
+                    defaults={'stock_disponible': stock}
+                )
+                if not created:
+                    inventario.stock_disponible = stock
+                    inventario.save()
                 
                 messages.success(request, f'¡Disco "{disco.titulo}" creado exitosamente!')
                 return redirect('panel_empleado')
@@ -902,6 +1128,28 @@ def editar_disco(request, disco_id):
                 # Guardar el disco con la portada
                 disco.save()
                 
+                # Guardar stock para el formato seleccionado
+                from .models import Inventario, Sucursal
+                try:
+                    sucursal_principal = Sucursal.objects.get(nombre='Principal')
+                except Sucursal.DoesNotExist:
+                    sucursal_principal = Sucursal.objects.create(nombre='Principal', activa=True)
+                
+                # Obtener el formato del disco
+                formato = disco.formato
+                stock = form.cleaned_data.get('stock', 0) or 0
+                
+                # Guardar o actualizar el inventario para este formato
+                inventario, created = Inventario.objects.get_or_create(
+                    producto_disco=disco,
+                    formato_disco=formato,
+                    sucursal=sucursal_principal,
+                    defaults={'stock_disponible': stock}
+                )
+                if not created:
+                    inventario.stock_disponible = stock
+                    inventario.save()
+                
                 messages.success(request, f'¡Disco "{disco.titulo}" actualizado exitosamente!')
                 return redirect('panel_empleado')
             except Exception as e:
@@ -929,13 +1177,16 @@ def editar_disco(request, disco_id):
 
 @empleado_required
 def eliminar_disco(request, disco_id):
-    """Eliminar disco"""
+    """Eliminar disco (marcar como inactivo para que no aparezca en ningún lugar)"""
     disco = get_object_or_404(Disco, id=disco_id)
     
     if request.method == 'POST':
         titulo = disco.titulo
-        disco.delete()
-        messages.success(request, f'¡Disco "{titulo}" eliminado exitosamente!')
+        # Marcar como inactivo en lugar de eliminar físicamente
+        # Esto asegura que no aparezca en ningún lugar (página principal, listados, etc.)
+        disco.activo = False
+        disco.save()
+        messages.success(request, f'¡Disco "{titulo}" eliminado del catálogo exitosamente!')
         return redirect('panel_empleado')
     
     return render(request, 'empleado/confirmar_eliminar.html', {'objeto': disco, 'tipo': 'disco'})
@@ -1026,25 +1277,18 @@ def eliminar_refaccion(request, refaccion_id):
     
     return render(request, 'empleado/confirmar_eliminar.html', {'objeto': refaccion, 'tipo': 'refaccion'})
 
-# ===========================================
-# VISTAS DEL PANEL DE VENDEDOR
-# ===========================================
 
 @empleado_required
 def panel_reportes(request):
     """Panel de reportes para vendedor"""
-    # Estadísticas de ganancias
     pedidos_completados = Pedido.objects.filter(estado__in=['completado', 'enviado'])
     total_ganancias = pedidos_completados.aggregate(total=Sum('total'))['total'] or 0
     total_pedidos = pedidos_completados.count()
     
-    # Compras recientes (últimos 20 pedidos)
     compras_recientes = pedidos_completados.order_by('-fecha_pedido')[:20]
     
-    # Usuarios activos (que han hecho al menos un pedido)
     usuarios_activos = User.objects.filter(pedidos__isnull=False).distinct().count()
     
-    # Top productos más vendidos
     items_mas_vendidos = ItemPedido.objects.filter(
         pedido__estado__in=['completado', 'enviado']
     ).values('disco__titulo', 'disco__artista__nombre', 'instrumento__nombre', 'instrumento__marca', 'refaccion__nombre', 'refaccion__marca').annotate(
@@ -1099,6 +1343,166 @@ def detalle_cliente(request, cliente_id):
     return render(request, 'empleado/detalle_cliente.html', context)
 
 @empleado_required
+@require_http_methods(["POST"])
+def generar_reporte_clientes_pdf(request):
+    """Genera un reporte PDF con los clientes seleccionados"""
+    try:
+        clientes_ids = request.POST.getlist('clientes_seleccionados')
+        
+        if not clientes_ids:
+            messages.error(request, 'Por favor selecciona al menos un cliente para generar el reporte.')
+            return redirect('lista_clientes')
+        
+        clientes = User.objects.filter(
+            id__in=clientes_ids,
+            perfilusuario__tipo_usuario='cliente'
+        ).order_by('username')
+        
+        if not clientes.exists():
+            messages.error(request, 'No se encontraron clientes válidos.')
+            return redirect('lista_clientes')
+        
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="reporte_clientes_{datetime.now().strftime("%Y%m%d_%H%M%S")}.pdf"'
+        
+        doc = SimpleDocTemplate(response, pagesize=A4)
+        story = []
+        
+        styles = getSampleStyleSheet()
+        
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor=colors.HexColor('#00d4aa'),
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Heading2'],
+            fontSize=14,
+            textColor=colors.HexColor('#1db954'),
+            spaceAfter=20,
+            alignment=TA_LEFT,
+            fontName='Helvetica-Bold'
+        )
+        
+        report_subtitle_style = ParagraphStyle(
+            'ReportSubtitle',
+            parent=styles['Heading2'],
+            fontSize=16,
+            textColor=colors.HexColor('#1db954'),
+            spaceAfter=20,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        normal_style = ParagraphStyle(
+            'CustomNormal',
+            parent=styles['Normal'],
+            fontSize=10,
+            textColor=colors.HexColor('#000000'),
+            spaceAfter=12,
+            alignment=TA_LEFT,
+            fontName='Helvetica'
+        )
+        
+        info_style = ParagraphStyle(
+            'InfoStyle',
+            parent=styles['Normal'],
+            fontSize=9,
+            textColor=colors.HexColor('#333333'),
+            spaceAfter=8,
+            alignment=TA_LEFT,
+            fontName='Helvetica'
+        )
+        
+        title = Paragraph("A DESTIEMPO", title_style)
+        story.append(title)
+        
+        subtitle = Paragraph("REPORTE DE CLIENTES", report_subtitle_style)
+        story.append(subtitle)
+        
+        fecha_reporte = datetime.now().strftime("%d/%m/%Y %H:%M")
+        info_text = f"<b>Fecha de generación:</b> {fecha_reporte}<br/>"
+        info_text += f"<b>Total de clientes:</b> {clientes.count()}"
+        info_paragraph = Paragraph(info_text, normal_style)
+        story.append(info_paragraph)
+        story.append(Spacer(1, 0.3*inch))
+        
+        for idx, cliente in enumerate(clientes, 1):
+            pedidos = Pedido.objects.filter(cliente=cliente)
+            total_pedidos = pedidos.count()
+            total_gastado = pedidos.aggregate(total=Sum('total'))['total'] or 0
+            
+            cliente_title = f"<b>Cliente #{idx}: {cliente.username}</b>"
+            cliente_paragraph = Paragraph(cliente_title, subtitle_style)
+            story.append(cliente_paragraph)
+            
+            cliente_data = [
+                ['<b>Usuario:</b>', cliente.username],
+                ['<b>Nombre completo:</b>', cliente.get_full_name() or '-'],
+                ['<b>Email:</b>', cliente.email],
+                ['<b>Fecha de registro:</b>', cliente.date_joined.strftime("%d/%m/%Y %H:%M")],
+                ['<b>Último acceso:</b>', cliente.last_login.strftime("%d/%m/%Y %H:%M") if cliente.last_login else 'Nunca'],
+                ['<b>Total de pedidos:</b>', str(total_pedidos)],
+                ['<b>Total gastado:</b>', f"${total_gastado:,.2f}"],
+            ]
+            
+            cliente_table = Table(cliente_data, colWidths=[2.5*inch, 4*inch])
+            cliente_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#1a1a1a')),
+                ('TEXTCOLOR', (0, 0), (0, -1), colors.HexColor('#00d4aa')),
+                ('BACKGROUND', (1, 0), (1, -1), colors.HexColor('#f5f5f5')),
+                ('TEXTCOLOR', (1, 0), (1, -1), colors.HexColor('#000000')),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+                ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+                ('FONTSIZE', (0, 0), (-1, -1), 9),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                ('GRID', (0, 0), (-1, -1), 1, colors.HexColor('#cccccc')),
+            ]))
+            
+            story.append(cliente_table)
+            story.append(Spacer(1, 0.4*inch))
+            
+            if total_pedidos > 0:
+                pedidos_text = f"<b>Historial de pedidos:</b> {total_pedidos} pedido(s) realizados"
+                pedidos_paragraph = Paragraph(pedidos_text, info_style)
+                story.append(pedidos_paragraph)
+                story.append(Spacer(1, 0.2*inch))
+            
+            if idx < clientes.count():
+                story.append(Spacer(1, 0.2*inch))
+                separador = Table([['']], colWidths=[6.5*inch], rowHeights=[0.02*inch])
+                separador.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#00d4aa')),
+                ]))
+                story.append(separador)
+                story.append(Spacer(1, 0.3*inch))
+        
+        story.append(Spacer(1, 0.5*inch))
+        footer_text = f"<i>Reporte generado el {fecha_reporte} - A Destiempo - Sistema de Gestión</i>"
+        footer_paragraph = Paragraph(footer_text, info_style)
+        story.append(footer_paragraph)
+        
+        doc.build(story)
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error al generar el reporte: {str(e)}')
+        import traceback
+        traceback.print_exc()
+        return redirect('lista_clientes')
+
+@empleado_required
 def pedidos_pendientes(request):
     """CRUD de pedidos pendientes para vendedor"""
     estado_filter = request.GET.get('estado', 'pendiente')
@@ -1134,26 +1538,19 @@ def detalle_pedido_vendedor(request, pedido_id):
     }
     return render(request, 'empleado/detalle_pedido.html', context)
 
-# ===========================================
-# FUNCIONES AUXILIARES
-# ===========================================
 
 def enviar_factura_email(pedido):
     """Envía la factura del pedido por email al cliente"""
     try:
-        # Renderizar el template de factura
         html_content = render_to_string('facturas/factura.html', {'pedido': pedido})
         
-        # Crear el email
         subject = f'Factura - Pedido #{pedido.numero_pedido} - A Destiempo'
         from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'noreply@adestiempo.com')
         to_email = pedido.email
         
-        # Crear mensaje con HTML
         msg = EmailMultiAlternatives(subject, '', from_email, [to_email])
         msg.attach_alternative(html_content, 'text/html')
         
-        # Enviar el email
         msg.send()
         
         print(f"Factura enviada por email a {to_email} para el pedido #{pedido.numero_pedido}")
@@ -1163,3 +1560,34 @@ def enviar_factura_email(pedido):
         import traceback
         traceback.print_exc()
         return False
+
+@csrf_exempt
+def chat_bot_api(request):
+    """API para el bot de chat - procesa mensajes y devuelve respuestas"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        import json
+        data = json.loads(request.body)
+        mensaje = data.get('mensaje', '').strip()
+        
+        if not mensaje:
+            return JsonResponse({'error': 'Mensaje vacío'}, status=400)
+        
+        bot = ChatBot()
+        respuesta = bot.procesar_mensaje(mensaje)
+        
+        return JsonResponse({
+            'respuesta': respuesta,
+            'exito': True
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({
+            'error': 'Error al procesar el mensaje',
+            'respuesta': 'Lo siento, hubo un error. Por favor intenta nuevamente.',
+            'exito': False
+        }, status=500)

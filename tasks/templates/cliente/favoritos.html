@@ -50,10 +50,10 @@
                 {% elif favorito.instrumento %}
                     <a href="{% url 'detalle_instrumento' favorito.instrumento.id %}" class="text-decoration-none">
                         {% if favorito.instrumento.imagen_principal %}
-                            <img src="{{ favorito.instrumento.imagen_principal.url }}" class="card-img-top" alt="{{ favorito.instrumento.nombre }}" style="height: 300px; object-fit: cover;">
+                            <img src="{{ favorito.instrumento.imagen_principal.url }}" class="card-img-top instrument-card-img" alt="{{ favorito.instrumento.nombre }}">
                         {% else %}
-                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 300px;">
-                                <i class="fas fa-guitar fa-4x text-muted"></i>
+                            <div class="card-img-top instrument-card-placeholder">
+                                <i class="fas fa-guitar"></i>
                             </div>
                         {% endif %}
                     </a>

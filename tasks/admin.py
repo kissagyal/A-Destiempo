@@ -98,7 +98,11 @@ class InventarioMovimientoAdmin(admin.ModelAdmin):
     def producto(self, obj):
         return obj.producto
 
-# Configuración personalizada del sitio admin
+    
+    def contenido_preview(self, obj):
+        return obj.contenido[:50] + '...' if len(obj.contenido) > 50 else obj.contenido
+    contenido_preview.short_description = 'Contenido'
+
 admin.site.site_header = "A Destiempo - Administración"
 admin.site.site_title = "A Destiempo Admin"
 admin.site.index_title = "Panel de Administración"

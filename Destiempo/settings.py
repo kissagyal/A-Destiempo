@@ -162,3 +162,14 @@ DEFAULT_FROM_EMAIL = 'A Destiempo <noreply@adestiempo.com>'
 SESSION_COOKIE_SECURE = False  # Solo HTTPS en producción
 SESSION_COOKIE_HTTPONLY = True  # Protección XSS
 SESSION_COOKIE_SAMESITE = 'Lax'  # Protección CSRF
+
+# Integraciones externas
+LASTFM_API_KEY = 'fe85f77e6bb98b474974ea3711f85850'  # Asigna tu API key de Last.fm (https://www.last.fm/api/account/create)
+LASTFM_API_LANG = 'es'
+
+TWILIO_ACCOUNT_SID = ''
+TWILIO_AUTH_TOKEN = ''
+TWILIO_WHATSAPP_FROM = 'whatsapp:+14155238886'
+
+WHATSAPP_NUMERO = '521234567890'
+WHATSAPP_MENSAJE_INICIAL = 'Hola, necesito ayuda con A Destiempo'

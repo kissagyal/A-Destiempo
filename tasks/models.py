@@ -5,6 +5,8 @@ from django.db.models import Sum
 from django.core.exceptions import ValidationError
 import os
 from datetime import datetime
+import re
+from django.urls import reverse
 
 class PerfilUsuario(models.Model):
     TIPOS_USUARIO = [
@@ -55,7 +57,6 @@ class Disco(models.Model):
     FORMATOS = [
         ('vinilo', 'Vinilo'),
         ('cd', 'CD'),
-        ('digital', 'Digital'),
         ('casete', 'Casete'),
     ]
     
@@ -86,8 +87,8 @@ class Disco(models.Model):
     
     @property
     def stock_total(self):
-        """Stock total en todas las sucursales (compatibilidad)"""
-        return get_stock_total_disco(self)
+        """Stock total en todas las sucursales para el formato del disco"""
+        return get_stock_total_disco(self, formato=self.formato)
     
     def tiene_stock(self):
         """Verifica si tiene stock disponible"""
@@ -149,10 +150,6 @@ class Instrumento(models.Model):
         """Verifica si tiene stock disponible"""
         return self.stock_total > 0
 
-# ===========================================
-# MODELOS DE INVENTARIO MULTI-SUCURSAL
-# ===========================================
-
 class Sucursal(models.Model):
     """Modelo para sucursales/tiendas"""
     nombre = models.CharField(max_length=100, unique=True)
@@ -174,7 +171,7 @@ class Inventario(models.Model):
     """Inventario por producto, formato (para discos) y sucursal"""
     producto_disco = models.ForeignKey(Disco, on_delete=models.CASCADE, null=True, blank=True, related_name='inventario_disco')
     producto_instrumento = models.ForeignKey(Instrumento, on_delete=models.CASCADE, null=True, blank=True, related_name='inventario_instrumento')
-    # Para discos: formato específico (vinilo, cd, digital, casete)
+    # Para discos: formato específico (vinilo, cd, casete)
     # Para instrumentos: siempre null
     formato_disco = models.CharField(max_length=10, choices=Disco.FORMATOS, null=True, blank=True)
     sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE)
@@ -301,10 +298,6 @@ class Favorito(models.Model):
             return f"{self.usuario.username} - {self.refaccion.nombre}"
         return f"{self.usuario.username} - Favorito"
 
-# ===========================================
-# MODELO DE REFACCIONES
-# ===========================================
-
 class CategoriaRefaccion(models.Model):
     """Categorías para refacciones"""
     nombre = models.CharField(max_length=50, unique=True)
@@ -317,6 +310,20 @@ class CategoriaRefaccion(models.Model):
     def __str__(self):
         return self.nombre
 
+class CompatibilidadGeneral(models.Model):
+    """Categorías generales de compatibilidad para refacciones/accesorios
+    Ejemplos: Guitarra Eléctrica, Guitarra Acústica, Bajo, Batería, Teclado, Audio, Universal, etc."""
+    nombre = models.CharField(max_length=60, unique=True)
+    descripcion = models.TextField(blank=True)
+    
+    class Meta:
+        verbose_name = 'Compatibilidad General'
+        verbose_name_plural = 'Compatibilidades Generales'
+        ordering = ['nombre']
+    
+    def __str__(self):
+        return self.nombre
+
 def upload_to_refacciones(instance, filename):
     return os.path.join('refacciones', instance.categoria.nombre, filename)
 
@@ -325,7 +332,8 @@ class Refaccion(models.Model):
     nombre = models.CharField(max_length=200)
     marca = models.CharField(max_length=100)
     categoria = models.ForeignKey(CategoriaRefaccion, on_delete=models.CASCADE, related_name='refacciones')
-    modelo_compatible = models.CharField(max_length=200, blank=True, help_text="Modelos de instrumentos con los que es compatible")
+    compatibilidad_general = models.ForeignKey(CompatibilidadGeneral, on_delete=models.SET_NULL, null=True, blank=True, related_name='refacciones', help_text="Categoría general de compatibilidad (p. ej., Guitarra Eléctrica, Bajo, Universal)")
+    modelo_compatible = models.CharField(max_length=200, blank=True, help_text="Modelo(s) específico(s) con los que es compatible (texto libre)")
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     stock = models.PositiveIntegerField(default=0)
     descripcion = models.TextField(blank=True)
@@ -350,9 +358,35 @@ class Refaccion(models.Model):
         """Verifica si tiene stock disponible"""
         return self.stock_total > 0
 
-# ===========================================
-# MODELOS DE PEDIDOS Y FACTURACIÓN
-# ===========================================
+def upload_to_hero_banners(instance, filename):
+    artista_nombre = re.sub(r'[^\w\s-]', '', instance.artista.nombre).strip()
+    artista_nombre = re.sub(r'[-\s]+', '-', artista_nombre) or 'artista'
+    return os.path.join('hero_banners', artista_nombre, filename)
+
+class HeroBanner(models.Model):
+    artista = models.OneToOneField(Artista, on_delete=models.CASCADE, related_name='hero_banner')
+    imagen = models.ImageField(upload_to=upload_to_hero_banners)
+    titulo = models.CharField(max_length=150, default='A Destiempo')
+    subtitulo = models.TextField(default='Descubre la mejor colección de discos, vinilos e instrumentos musicales. Donde la música cobra vida.')
+    boton_1_texto = models.CharField(max_length=80, default='Explorar Discos')
+    boton_1_url = models.CharField(max_length=200, blank=True, default='')
+    boton_2_texto = models.CharField(max_length=80, default='Ver Instrumentos')
+    boton_2_url = models.CharField(max_length=200, blank=True, default='')
+    actualizado = models.DateTimeField(auto_now=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'Hero Banner'
+        verbose_name_plural = 'Hero Banners'
+
+    def __str__(self):
+        return f"Banner de {self.artista.nombre}"
+
+    def get_boton_1_url(self):
+        return self.boton_1_url or reverse('lista_discos')
+
+    def get_boton_2_url(self):
+        return self.boton_2_url or reverse('lista_instrumentos')
 
 class Pedido(models.Model):
     """Modelo para pedidos de clientes"""
@@ -451,5 +485,55 @@ class ItemPedido(models.Model):
 
 def get_stock_total_refaccion(refaccion):
     """Obtiene el stock total de una refacción en todas las sucursales"""
-    # Por ahora retornar stock directo, se puede expandir con inventario multi-sucursal
     return refaccion.stock
+
+class ConversacionWhatsApp(models.Model):
+    """Modelo para almacenar conversaciones de WhatsApp"""
+    numero_whatsapp = models.CharField(max_length=20, help_text="Número de WhatsApp del cliente")
+    nombre_cliente = models.CharField(max_length=200, blank=True, help_text="Nombre del cliente si está disponible")
+    estado = models.CharField(
+        max_length=20,
+        choices=[
+            ('activa', 'Activa'),
+            ('resuelta', 'Resuelta'),
+            ('en_espera', 'En Espera'),
+        ],
+        default='activa'
+    )
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_ultimo_mensaje = models.DateTimeField(auto_now=True)
+    contexto = models.TextField(blank=True, help_text="Contexto de la conversación para el bot")
+    
+    class Meta:
+        verbose_name = 'Conversación WhatsApp'
+        verbose_name_plural = 'Conversaciones WhatsApp'
+        ordering = ['-fecha_ultimo_mensaje']
+        indexes = [
+            models.Index(fields=['numero_whatsapp']),
+            models.Index(fields=['estado']),
+        ]
+    
+    def __str__(self):
+        return f"Conversación con {self.numero_whatsapp} - {self.estado}"
+
+class MensajeWhatsApp(models.Model):
+    """Modelo para almacenar mensajes individuales de WhatsApp"""
+    TIPOS_MENSAJE = [
+        ('entrante', 'Entrante'),
+        ('saliente', 'Saliente'),
+    ]
+    
+    conversacion = models.ForeignKey(ConversacionWhatsApp, on_delete=models.CASCADE, related_name='mensajes')
+    tipo = models.CharField(max_length=10, choices=TIPOS_MENSAJE)
+    contenido = models.TextField()
+    fecha_envio = models.DateTimeField(auto_now_add=True)
+    es_bot = models.BooleanField(default=False, help_text="Indica si el mensaje fue generado por el bot")
+    
+    class Meta:
+        verbose_name = 'Mensaje WhatsApp'
+        verbose_name_plural = 'Mensajes WhatsApp'
+        ordering = ['fecha_envio']
+    
+    def __str__(self):
+        tipo_str = "Bot" if self.es_bot else ("Cliente" if self.tipo == 'entrante' else "Sistema")
+        return f"{tipo_str} - {self.contenido[:50]}..."

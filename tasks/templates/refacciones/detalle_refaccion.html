@@ -4,106 +4,123 @@
 {% block title %}{{ refaccion.marca }} {{ refaccion.nombre }}{% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-lg-5">
-            <div class="product-detail">
-                {% if refaccion.imagen_principal %}
-                    <img src="{{ refaccion.imagen_principal.url }}" class="card-img-top product-image mb-4" alt="{{ refaccion.nombre }}">
-                {% else %}
-                    <div class="d-flex align-items-center justify-content-center bg-secondary rounded mb-4" style="height: 400px;">
-                        <i class="fas fa-cog fa-8x text-muted"></i>
-                    </div>
-                {% endif %}
-            </div>
-        </div>
-        
-        <div class="col-lg-7">
-            <div class="product-detail">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
+<div class="container-fluid disco-detail-hero">
+    <div class="container">
+        <!-- Breadcrumb y Títulos Comprimidos -->
+        <div class="row mb-2">
+            <div class="col-12">
+                <nav aria-label="breadcrumb" class="mb-1">
+                    <ol class="breadcrumb breadcrumb-sm">
                         <li class="breadcrumb-item"><a href="{% url 'inicio' %}" class="text-muted">Inicio</a></li>
                         <li class="breadcrumb-item"><a href="{% url 'lista_refacciones' %}" class="text-muted">Refacciones</a></li>
                         <li class="breadcrumb-item active text-light">{{ refaccion.nombre }}</li>
                     </ol>
                 </nav>
-                
-                <h1 class="display-6 text-gradient mb-3">{{ refaccion.nombre }}</h1>
-                <h3 class="text-primary mb-4">{{ refaccion.marca }}</h3>
+                <h1 class="display-6 text-gradient mb-0" style="font-size: 2rem;">{{ refaccion.nombre }}</h1>
+                <h3 class="text-primary" style="font-size: 1.3rem;">{{ refaccion.marca }}</h3>
                 {% if refaccion.modelo_compatible %}
-                    <h5 class="text-muted mb-4">Compatible con: {{ refaccion.modelo_compatible }}</h5>
+                    <p class="text-muted small mb-0">Compatible con: {{ refaccion.modelo_compatible }}</p>
                 {% endif %}
-                
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <p class="mb-2"><strong>Categoría:</strong> 
-                            <span class="badge bg-info">{{ refaccion.categoria.nombre }}</span>
-                        </p>
+            </div>
+        </div>
+        
+        <!-- Contenedor Principal: Imagen + Info (SIN SCROLLEAR) -->
+        <div class="row align-items-center g-3">
+            <!-- IMAGEN (Izquierda) -->
+            <div class="col-lg-4">
+                {% if refaccion.imagen_principal %}
+                    <div class="disco-detail-compact-image">
+                        <img src="{{ refaccion.imagen_principal.url }}" class="refaccion-detail-image" alt="{{ refaccion.nombre }}">
                     </div>
-                    <div class="col-md-6">
-                        <p class="mb-2"><strong>Stock:</strong> 
-                            {% if refaccion.tiene_stock %}
-                                <span class="text-success">
-                                    <i class="fas fa-check-circle me-1"></i>{{ refaccion.stock_total }} disponibles
-                                </span>
-                            {% else %}
-                                <span class="text-danger">
-                                    <i class="fas fa-times-circle me-1"></i>Agotado
-                                </span>
-                            {% endif %}
-                        </p>
-                        <p class="mb-0"><strong>Precio:</strong> 
-                            <span class="price fs-4">${{ refaccion.precio|floatformat:2 }}</span>
-                        </p>
+                {% else %}
+                    <div class="disco-detail-compact-image d-flex align-items-center justify-content-center">
+                        <i class="fas fa-cog fa-6x text-muted"></i>
                     </div>
-                </div>
-                
-                {% if refaccion.descripcion %}
-                <div class="mb-4">
-                    <h5>Descripción</h5>
-                    <p class="text-muted">{{ refaccion.descripcion }}</p>
-                </div>
                 {% endif %}
-                
-                <div class="d-flex gap-3">
+            </div>
+            
+            <!-- INFORMACIÓN COMPRIMIDA (Derecha) -->
+            <div class="col-lg-8">
+                <div class="disco-detail-compact-info">
+                    <!-- Grid de Información -->
+                    <div class="row g-2 mb-3">
+                        <div class="col-6 col-md-3">
+                            <div class="info-item">
+                                <span class="info-label">Categoría</span>
+                                <span class="badge bg-info">{{ refaccion.categoria.nombre }}</span>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3">
+                            <div class="info-item">
+                                <span class="info-label">Stock</span>
+                                {% if refaccion.tiene_stock %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check-circle"></i>
+                                        {{ refaccion.stock_total }}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">Agotado</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Línea separadora -->
+                    <hr class="my-2">
+
+                    <!-- Precio Grande -->
+                    <div class="mb-3">
+                        <span class="info-label d-block mb-1">Precio</span>
+                        <span class="price-large">${{ refaccion.precio|floatformat:2 }}</span>
+                    </div>
+
+                    <!-- Descripción (si existe) -->
+                    {% if refaccion.descripcion %}
+                    <div class="mb-3">
+                        <p class="text-muted small mb-0">{{ refaccion.descripcion|truncatewords:20 }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Botones de Acción (Compactos) -->
+                    <div class="d-flex gap-2 flex-wrap">
                     {% if refaccion.tiene_stock %}
                         {% if user.is_authenticated %}
                             <form method="post" action="{% url 'agregar_carrito_refaccion' refaccion.id %}" class="d-inline">
                                 {% csrf_token %}
                                 <input type="hidden" name="cantidad" value="1">
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
+                                    <button type="submit" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-shopping-cart me-1"></i>Carrito
                                 </button>
                             </form>
                         {% else %}
-                            <button type="button" class="btn btn-primary btn-lg" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
-                                <i class="fas fa-shopping-cart me-2"></i>Agregar al Carrito
+                                <button type="button" class="btn btn-primary btn-sm" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
+                                    <i class="fas fa-shopping-cart me-1"></i>Carrito
                             </button>
                         {% endif %}
                     {% else %}
-                        <button class="btn btn-secondary btn-lg" disabled>
-                            <i class="fas fa-times-circle me-2"></i>Agotado
+                            <button class="btn btn-secondary btn-sm" disabled>
+                                <i class="fas fa-times-circle me-1"></i>Agotado
                         </button>
                     {% endif %}
                     {% if user.is_authenticated %}
                         {% if es_favorito %}
                             <form method="post" action="{% url 'quitar_favorito_refaccion' refaccion.id %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-danger btn-lg">
-                                    <i class="fas fa-heart-broken me-2"></i>Quitar de Favoritos
+                                    <button type="submit" class="btn btn-outline-danger btn-sm">
+                                        <i class="fas fa-heart-broken me-1"></i>Quitar Fav
                                 </button>
                             </form>
                         {% else %}
                             <form method="post" action="{% url 'agregar_favorito_refaccion' refaccion.id %}" class="d-inline">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-outline-primary btn-lg">
-                                    <i class="fas fa-heart me-2"></i>Agregar a Favoritos
+                                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-heart me-1"></i>Favoritos
                                 </button>
                             </form>
                         {% endif %}
                     {% else %}
-                        <button type="button" class="btn btn-outline-primary btn-lg" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
-                            <i class="fas fa-heart me-2"></i>Favoritos
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="Swal.fire({icon: 'warning', title: 'Espera', text: '¡Espera, debes iniciar sesión antes!', confirmButtonColor: '#00d4aa', background: '#1a1a1a', color: '#ffffff', confirmButtonText: 'Ir a Iniciar Sesión'}).then((result) => { if (result.isConfirmed) window.location.href='{% url 'login' %}'; })">
+                                <i class="fas fa-heart me-1"></i>Favoritos
                         </button>
                     {% endif %}
                 </div>
@@ -122,22 +139,30 @@
             <div class="row">
                 {% for ref_rel in refacciones_relacionadas %}
                 <div class="col-lg-3 col-md-6 mb-4">
-                    <div class="card h-100">
-                        <a href="{% url 'detalle_refaccion' ref_rel.id %}" class="text-decoration-none">
-                            {% if ref_rel.imagen_principal %}
-                                <img src="{{ ref_rel.imagen_principal.url }}" class="card-img-top" alt="{{ ref_rel.nombre }}">
-                            {% else %}
-                                <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 200px;">
-                                    <i class="fas fa-cog fa-3x text-muted"></i>
+                    <div class="refaccion-card">
+                        <a href="{% url 'detalle_refaccion' ref_rel.id %}" class="refaccion-image-link">
+                            <div class="refaccion-image-container">
+                                {% if ref_rel.imagen_principal %}
+                                    <img src="{{ ref_rel.imagen_principal.url }}" class="refaccion-image" alt="{{ ref_rel.nombre }}">
+                                {% else %}
+                                    <div class="refaccion-image-placeholder">
+                                        <i class="fas fa-cog"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="refaccion-overlay">
+                                    <span class="refaccion-overlay-badge">Ver</span>
                                 </div>
-                            {% endif %}
+                            </div>
                         </a>
                         
-                        <div class="card-body">
-                            <h6 class="card-title text-light">{{ ref_rel.nombre }}</h6>
-                            <p class="card-text text-primary fw-bold small">{{ ref_rel.marca }}</p>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="price small">${{ ref_rel.precio|floatformat:2 }}</span>
+                        <div class="refaccion-card-body">
+                            <h6 class="refaccion-title">{{ ref_rel.nombre }}</h6>
+                            <p class="refaccion-brand">{{ ref_rel.marca }}</p>
+                            <div class="refaccion-footer">
+                                <div class="refaccion-price">
+                                    <span class="price-symbol">$</span>
+                                    <span class="refaccion-price-amount">{{ ref_rel.precio|floatformat:0 }}</span>
+                                </div>
                             </div>
                         </div>
                     </div>

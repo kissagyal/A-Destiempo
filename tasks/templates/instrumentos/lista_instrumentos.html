@@ -70,10 +70,10 @@
                 <div class="card h-100 fade-in-up">
                     <a href="{% url 'detalle_instrumento' instrumento.id %}" class="text-decoration-none">
                         {% if instrumento.imagen_principal %}
-                            <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top" alt="{{ instrumento.nombre }}">
+                            <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top instrument-card-img" alt="{{ instrumento.nombre }}">
                         {% else %}
-                            <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary" style="height: 250px;">
-                                <i class="fas fa-guitar fa-4x text-muted"></i>
+                            <div class="card-img-top instrument-card-placeholder">
+                                <i class="fas fa-guitar"></i>
                             </div>
                         {% endif %}
                     </a>

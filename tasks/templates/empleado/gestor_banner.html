@@ -1,0 +1,245 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Gestor de Banner - A Destiempo{% endblock %}
+
+{% block extra_css %}
+<style>
+    .banner-preview-wrapper {
+        position: relative;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 25px 45px rgba(0, 0, 0, 0.45);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        background: #000;
+    }
+    .banner-preview {
+        min-height: 420px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+    .banner-preview::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(90deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.78) 40%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0) 100%);
+        pointer-events: none;
+    }
+    .banner-preview-content {
+        position: relative;
+        z-index: 2;
+        padding: 3rem;
+        max-width: 520px;
+    }
+    .banner-preview-content h1 {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(45deg, #ffffff, #00d4aa, #1db954, #ffffff);
+        background-size: 200% auto;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: gradientShift 3s ease infinite;
+        margin-bottom: 1.5rem;
+    }
+    .banner-preview-buttons .btn {
+        border-radius: 30px;
+        padding: 0.75rem 1.75rem;
+        font-weight: 600;
+    }
+    .banner-preview-buttons .btn-outline-primary {
+        border-width: 2px;
+    }
+    @keyframes gradientShift {
+        0%, 100% { background-position: 0% center; }
+        50% { background-position: 100% center; }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-image me-2"></i>Gestor de Banner Principal
+            </h1>
+            <p class="text-muted mb-0">
+                Selecciona un artista y personaliza la imagen y los textos del banner principal. Puedes previsualizar el resultado antes de guardar.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <form method="get" class="mb-4">
+                        <label for="artist-select" class="form-label">Seleccionar artista</label>
+                        <select class="form-select" id="artist-select" name="artista" onchange="this.form.submit()">
+                            {% for artista in artistas %}
+                                <option value="{{ artista.id }}" {% if artista.id == artista_seleccionado.id %}selected{% endif %}>
+                                    {{ artista.nombre }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        <noscript>
+                            <button class="btn btn-outline-primary btn-sm mt-3">Cambiar</button>
+                        </noscript>
+                    </form>
+
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="hidden" name="artista_id" value="{{ artista_seleccionado.id }}">
+
+                        <div class="mb-3">
+                            <label class="form-label">Imagen actual</label>
+                            {% if banner and banner.imagen %}
+                                <div class="border rounded-3 overflow-hidden mb-2">
+                                    <img src="{{ banner.imagen.url }}" alt="Banner actual" class="img-fluid">
+                                </div>
+                            {% else %}
+                                <p class="text-muted small">No hay una imagen personalizada guardada para este artista.</p>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.imagen.label_tag }}
+                            {{ form.imagen }}
+                            {% if form.imagen.errors %}
+                                <div class="text-danger small">{{ form.imagen.errors|join:', ' }}</div>
+                            {% endif %}
+                            <small class="text-muted d-block mt-2">
+                                Recomendación: 1920x1080 px o superior, formato JPG/PNG. Puedes previsualizar cómo se verá antes de guardar.
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.titulo.label_tag }}
+                            {{ form.titulo }}
+                            {% if form.titulo.errors %}
+                                <div class="text-danger small">{{ form.titulo.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.subtitulo.label_tag }}
+                            {{ form.subtitulo }}
+                            {% if form.subtitulo.errors %}
+                                <div class="text-danger small">{{ form.subtitulo.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.boton_1_texto.label_tag }}
+                            {{ form.boton_1_texto }}
+                            {% if form.boton_1_texto.errors %}
+                                <div class="text-danger small">{{ form.boton_1_texto.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ form.boton_1_url.label_tag }}
+                            {{ form.boton_1_url }}
+                            {% if form.boton_1_url.errors %}
+                                <div class="text-danger small">{{ form.boton_1_url.errors|join:', ' }}</div>
+                            {% endif %}
+                            <small class="text-muted">Déjalo vacío para usar los enlaces predeterminados.</small>
+                        </div>
+
+                        <div class="mb-3">
+                            {{ form.boton_2_texto.label_tag }}
+                            {{ form.boton_2_texto }}
+                            {% if form.boton_2_texto.errors %}
+                                <div class="text-danger small">{{ form.boton_2_texto.errors|join:', ' }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-4">
+                            {{ form.boton_2_url.label_tag }}
+                            {{ form.boton_2_url }}
+                            {% if form.boton_2_url.errors %}
+                                <div class="text-danger small">{{ form.boton_2_url.errors|join:', ' }}</div>
+                            {% endif %}
+                            <small class="text-muted">Déjalo vacío para usar los enlaces predeterminados.</small>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-save me-2"></i>Guardar cambios
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="banner-preview-wrapper">
+                <div class="banner-preview" id="bannerPreview" style="background-image: url('{{ preview_config.background_url }}');">
+                    <div class="banner-preview-content text-light">
+                        <p class="hero-badge mb-3" style="display:inline-flex;align-items:center;">
+                            <i class="fas fa-star me-2"></i>Artista Destacado
+                        </p>
+                        <h2 class="hero-artist-name mb-2">{{ artista_seleccionado.nombre }}</h2>
+                        <h1 id="previewTitle">{{ preview_config.title }}</h1>
+                        <p id="previewSubtitle" class="mb-4">{{ preview_config.subtitle }}</p>
+                        <div class="banner-preview-buttons d-flex flex-wrap gap-3">
+                            <a href="#" class="btn btn-primary btn-lg d-inline-flex align-items-center" id="previewBtn1">
+                                <i class="fas fa-compact-disc me-2"></i><span>{{ preview_config.button1_text }}</span>
+                            </a>
+                            <a href="#" class="btn btn-outline-primary btn-lg d-inline-flex align-items-center" id="previewBtn2">
+                                <i class="fas fa-guitar me-2"></i><span>{{ preview_config.button2_text }}</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const fileInput = document.getElementById('id_imagen');
+    const previewSection = document.getElementById('bannerPreview');
+    const titleInput = document.getElementById('id_titulo');
+    const subtitleInput = document.getElementById('id_subtitulo');
+    const btn1TextInput = document.getElementById('id_boton_1_texto');
+    const btn2TextInput = document.getElementById('id_boton_2_texto');
+    const previewTitle = document.getElementById('previewTitle');
+    const previewSubtitle = document.getElementById('previewSubtitle');
+    const previewBtn1 = document.getElementById('previewBtn1').querySelector('span');
+    const previewBtn2 = document.getElementById('previewBtn2').querySelector('span');
+
+    if (fileInput) {
+        fileInput.addEventListener('change', function () {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    previewSection.style.backgroundImage = `url('${e.target.result}')`;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+
+    const syncText = (input, target, fallback = '') => {
+        if (!input || !target) return;
+        target.textContent = input.value.trim() || fallback;
+        input.addEventListener('keyup', () => {
+            target.textContent = input.value.trim() || fallback;
+        });
+    };
+
+    syncText(titleInput, previewTitle, 'A Destiempo');
+    syncText(subtitleInput, previewSubtitle, 'Descubre la mejor colección de discos, vinilos e instrumentos musicales. Donde la música cobra vida.');
+    syncText(btn1TextInput, previewBtn1, 'Explorar Discos');
+    syncText(btn2TextInput, previewBtn2, 'Ver Instrumentos');
+</script>
+{% endblock %}
+
+
+
+

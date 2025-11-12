@@ -22,10 +22,9 @@
     <!-- Navbar moderno -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-black fixed-top border-bottom border-secondary">
         <div class="container">
-            <a class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-3" href="{% url 'inicio' %}">
-                <img src="{% static 'images/logo.png' %}" alt="A Destiempo" class="brand-logo">
+            <div class="navbar-brand d-flex align-items-center gap-2 fw-bold fs-3">
                 <span class="text-gradient">A Destiempo</span>
-            </a>
+            </div>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -90,6 +89,11 @@
                                         <i class="fas fa-heart me-1"></i>Favoritos
                                     </a>
                                 </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'historial_pedidos' %}">
+                                        <i class="fas fa-history me-1"></i>Historial de pedidos
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 {% endif %}
                                 <li>
@@ -134,6 +138,42 @@
         
         {% block content %}{% endblock %}
     </main>
+
+    <!-- Botón flotante de Chat -->
+    <button class="chat-float" id="chatToggle" title="Chatea con nosotros">
+        <i class="fas fa-comments"></i>
+        <span class="chat-tooltip">¿Necesitas ayuda? Escríbenos</span>
+    </button>
+
+    <!-- Chat Flotante -->
+    <div class="chat-widget" id="chatWidget">
+        <div class="chat-header">
+            <div class="chat-header-content">
+                <i class="fas fa-headset me-2"></i>
+                <div>
+                    <h6 class="mb-0">Soporte A Destiempo</h6>
+                    <small class="text-muted">Estamos en línea</small>
+                </div>
+            </div>
+            <button class="chat-close" id="chatClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-message bot-message">
+                <div class="message-content">
+                    <p class="mb-0">¡Hola! 👋 Bienvenido a <strong>A Destiempo</strong>. ¿En qué puedo ayudarte hoy?</p>
+                </div>
+                <small class="message-time">Ahora</small>
+            </div>
+        </div>
+        <div class="chat-input-container">
+            <input type="text" class="chat-input" id="chatInput" placeholder="Escribe tu mensaje..." autocomplete="off">
+            <button class="chat-send" id="chatSend">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
 
     <!-- Footer -->
     <footer class="bg-black text-light py-5 mt-5 border-top border-secondary">
@@ -254,6 +294,132 @@
             }
           });
         }
+      }
+
+      // Chat Flotante
+      const chatToggle = document.getElementById('chatToggle');
+      const chatWidget = document.getElementById('chatWidget');
+      const chatClose = document.getElementById('chatClose');
+      const chatInput = document.getElementById('chatInput');
+      const chatSend = document.getElementById('chatSend');
+      const chatMessages = document.getElementById('chatMessages');
+
+      function toggleChat() {
+        chatWidget.classList.toggle('active');
+      }
+
+      function closeChat() {
+        chatWidget.classList.remove('active');
+      }
+
+      function addMessage(text, isUser = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${isUser ? 'user-message' : 'bot-message'}`;
+        
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        
+        // Formatear texto (markdown básico: *texto* para negrita, \n para saltos de línea)
+        const formattedText = formatMessage(text);
+        contentDiv.innerHTML = formattedText;
+        
+        const timeDiv = document.createElement('small');
+        timeDiv.className = 'message-time';
+        const now = new Date();
+        timeDiv.textContent = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+        
+        messageDiv.appendChild(contentDiv);
+        messageDiv.appendChild(timeDiv);
+        chatMessages.appendChild(messageDiv);
+        
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+      
+      function formatMessage(text) {
+        // Convertir markdown básico a HTML
+        let html = text
+          // Negrita: *texto* -> <strong>texto</strong>
+          .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
+          // Saltos de línea
+          .replace(/\n/g, '<br>')
+          // Emojis y caracteres especiales se mantienen
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;');
+        
+        // Restaurar los <strong> que fueron escapados
+        html = html.replace(/&lt;strong&gt;/g, '<strong>').replace(/&lt;\/strong&gt;/g, '</strong>');
+        html = html.replace(/&lt;br&gt;/g, '<br>');
+        
+        return html;
+      }
+
+      function sendMessage() {
+        const message = chatInput.value.trim();
+        if (!message) return;
+        
+        addMessage(message, true);
+        chatInput.value = '';
+        chatSend.disabled = true;
+        
+        // Enviar mensaje al bot inteligente
+        fetch('{% url "chat_bot_api" %}', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({ mensaje: message })
+        })
+        .then(response => response.json())
+        .then(data => {
+          chatSend.disabled = false;
+          if (data.exito) {
+            addMessage(data.respuesta, false);
+          } else {
+            addMessage(data.respuesta || 'Lo siento, hubo un error. Por favor intenta nuevamente.', false);
+          }
+        })
+        .catch(error => {
+          chatSend.disabled = false;
+          console.error('Error:', error);
+          addMessage('Lo siento, hubo un error de conexión. Por favor intenta nuevamente.', false);
+        });
+      }
+      
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      if (chatToggle) {
+        chatToggle.addEventListener('click', toggleChat);
+      }
+
+      if (chatClose) {
+        chatClose.addEventListener('click', closeChat);
+      }
+
+      if (chatSend) {
+        chatSend.addEventListener('click', sendMessage);
+      }
+
+      if (chatInput) {
+        chatInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            sendMessage();
+          }
+        });
       }
     });
     </script>

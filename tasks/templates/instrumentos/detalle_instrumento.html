@@ -6,10 +6,10 @@
 {% block content %}
 <div class="container py-5">
     <div class="row">
-        <div class="col-lg-5">
-            <div class="product-detail">
+        <div class="col-lg-12">
+            <div class="product-detail mb-4">
                 {% if instrumento.imagen_principal %}
-                    <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top product-image mb-4" alt="{{ instrumento.nombre }}">
+                    <img src="{{ instrumento.imagen_principal.url }}" class="img-fluid rounded product-image-full mb-4" alt="{{ instrumento.nombre }}">
                 {% else %}
                     <div class="d-flex align-items-center justify-content-center bg-secondary rounded mb-4" style="height: 400px;">
                         <i class="fas fa-guitar fa-8x text-muted"></i>
@@ -18,7 +18,7 @@
             </div>
         </div>
         
-        <div class="col-lg-7">
+        <div class="col-lg-12">
             <div class="product-detail">
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb">
@@ -152,4 +152,25 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .product-image-full {
+        width: 100%;
+        height: auto;
+        object-fit: contain;
+        max-width: 100%;
+        display: block;
+        border-radius: 10px;
+        max-height: 600px;
+        margin: 0 auto;
+    }
+    
+    .product-detail {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+    }
+</style>
 {% endblock %}

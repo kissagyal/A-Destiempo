@@ -1,0 +1,180 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}{{ titulo }} - A Destiempo{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'panel_empleado' %}" class="text-muted">Panel</a></li>
+                    <li class="breadcrumb-item active text-light">Refacciones</li>
+                </ol>
+            </nav>
+            <h1 class="text-gradient mb-3">
+                <i class="fas fa-cog me-2"></i>{{ titulo }}
+            </h1>
+            <p class="text-light">Administra refacciones y accesorios del catálogo</p>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12 d-flex justify-content-between align-items-center">
+            <a href="{% url 'crear_refaccion' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Nueva Refacción
+            </a>
+            <a href="{% url 'panel_empleado' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Panel
+            </a>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label text-light">Buscar</label>
+                            <input type="text" class="form-control" id="search" name="search" value="{{ search_actual|default:'' }}" placeholder="Nombre, marca o modelo compatible...">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="categoria" class="form-label text-light">Categoría</label>
+                            <select class="form-select" id="categoria" name="categoria">
+                                <option value="">Todas</option>
+                                {% for categoria in categorias %}
+                                    <option value="{{ categoria.id }}" {% if categoria_actual == categoria.id|stringformat:"s" %}selected{% endif %}>
+                                        {{ categoria.nombre }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="activo" class="form-label text-light">Estado de publicación</label>
+                            <select class="form-select" id="activo" name="activo">
+                                <option value="">Todos</option>
+                                <option value="si" {% if activo_actual == 'si' %}selected{% endif %}>Activos</option>
+                                <option value="no" {% if activo_actual == 'no' %}selected{% endif %}>Inactivos</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100"><i class="fas fa-search"></i></button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>Lista de Refacciones ({{ refacciones.count }})
+            </h5>
+        </div>
+        <div class="card-body">
+            {% if refacciones %}
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Imagen</th>
+                                <th>Nombre</th>
+                                <th>Marca</th>
+                                <th>Modelo compatible</th>
+                                <th>Categoría</th>
+                                <th>Precio</th>
+                                <th>Stock</th>
+                                <th>Activo</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for refaccion in refacciones %}
+                            <tr>
+                                <td>
+                                    {% if refaccion.imagen_principal %}
+                                        <img src="{{ refaccion.imagen_principal.url }}" alt="{{ refaccion.nombre }}" style="width:50px;height:50px;object-fit:cover;border-radius:4px;">
+                                    {% else %}
+                                        <div class="d-flex align-items-center justify-content-center bg-secondary rounded" style="width:50px;height:50px;">
+                                            <i class="fas fa-cog text-muted"></i>
+                                        </div>
+                                    {% endif %}
+                                </td>
+                                <td><strong>{{ refaccion.nombre }}</strong></td>
+                                <td>{{ refaccion.marca }}</td>
+                                <td>{{ refaccion.modelo_compatible|default:"-" }}</td>
+                                <td>{{ refaccion.categoria.nombre }}</td>
+                                <td class="price">${{ refaccion.precio|floatformat:2 }}</td>
+                                <td>{{ refaccion.stock|default:0 }}</td>
+                                <td>
+                                    {% if refaccion.activo %}
+                                        <span class="badge bg-success">Activo</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="d-flex gap-1">
+                                        <a href="{% url 'editar_refaccion' refaccion.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'eliminar_refaccion' refaccion.id %}" class="btn btn-outline-danger btn-sm btn-eliminar-refaccion" title="Eliminar" data-refaccion-id="{{ refaccion.id }}" data-refaccion-nombre="{{ refaccion.nombre }}">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-cog fa-5x text-muted mb-4"></i>
+                    <h3 class="text-light">No se encontraron refacciones</h3>
+                    <p class="text-muted">Ajusta los filtros de búsqueda o crea una nueva refacción.</p>
+                    <a href="{% url 'crear_refaccion' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Crear Refacción
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.btn-eliminar-refaccion').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            const nombre = this.getAttribute('data-refaccion-nombre');
+            const deleteUrl = this.getAttribute('href');
+
+            Swal.fire({
+                title: '¿Eliminar refacción?',
+                text: `Esto eliminará "${nombre}" del catálogo.`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = deleteUrl;
+                }
+            });
+        });
+    });
+});
+</script>
+{% endblock %}
+
+
+
+

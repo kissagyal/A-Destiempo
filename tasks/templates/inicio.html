@@ -5,33 +5,34 @@
 
 {% block content %}
 <!-- Hero Section -->
-<section class="hero-section">
-    <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-6">
-                <h1 class="hero-title mb-4">
-                    A Destiempo
-                </h1>
-                <p class="hero-subtitle">
-                    Descubre la mejor colección de discos, vinilos e instrumentos musicales. 
-                    Donde la música cobra vida.
-                </p>
-                <div class="d-flex gap-3 flex-wrap">
-                    <a href="{% url 'lista_discos' %}" class="btn btn-primary btn-lg">
-                        <i class="fas fa-compact-disc me-2"></i>Explorar Discos
-                    </a>
-                    <a href="{% url 'lista_instrumentos' %}" class="btn btn-outline-primary btn-lg">
-                        <i class="fas fa-guitar me-2"></i>Ver Instrumentos
-                    </a>
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <div class="text-center">
-                    <img src="{% static 'images/logo.png' %}" class="logo-watermark" alt="A Destiempo">
-                </div>
-            </div>
+<section style="background: none; padding: 0;">
+  <div class="banner-preview-wrapper" style="border-radius:24px; background:#000; overflow:hidden; box-shadow:0 25px 45px rgba(0,0,0,0.45); border:1px solid rgba(255,255,255,0.08); max-width: 1180px; margin: 32px auto 0 auto;">
+    <div class="banner-preview" style="min-height:420px; background-image:url('{{ hero_banner_config.background_url }}'); background-size:cover; background-position:center; background-repeat:no-repeat; display:flex; align-items:center; position:relative; padding: 2.5rem;">
+      <div style="content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(0,0,0,0.95) 0%,rgba(0,0,0,0.78) 40%,rgba(0,0,0,0.4) 75%,rgba(0,0,0,0) 100%);pointer-events:none;z-index:1;"></div>
+      <div class="banner-preview-content text-light" style="position:relative;z-index:2;padding:2.4rem 2rem; max-width: 460px; background:rgba(18,18,23,0.70); border-radius:20px; backdrop-filter: blur(2px); margin-left: 2.5rem; box-shadow: 0 8px 32px rgba(0,0,0,0.10);">
+        <p class="hero-badge mb-3 d-inline-flex align-items-center">
+          <i class="fas fa-star me-2"></i>Artista Destacado
+        </p>
+        <h2 class="hero-artist-name mb-2">
+          <a href="{% url 'lista_discos' %}?artista={{ artista_hero.id }}" class="link-light link-underline-opacity-0 link-underline-opacity-75-hover" style="font-weight: 800; letter-spacing: 0.5px;">
+            {{ artista_hero.nombre }} <i class="fas fa-arrow-right ms-1" style="font-size: 1rem;"></i>
+          </a>
+        </h2>
+        <h1 class="hero-title mb-4" style="font-size:3rem;font-weight:800;background: linear-gradient(45deg, #fff, #00d4aa, #1db954, #fff);background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation: gradientShift 3s ease infinite;">{{ hero_banner_config.title }}</h1>
+        <p class="hero-subtitle mb-4">{{ hero_banner_config.subtitle }}</p>
+        <div class="banner-preview-buttons d-flex flex-wrap gap-3">
+          <a href="{{ hero_banner_config.button1_url }}" class="btn btn-primary btn-lg d-inline-flex align-items-center">
+            <i class="fas fa-compact-disc me-2"></i>{{ hero_banner_config.button1_text }}
+          </a>
+          {% if hero_banner_config.button2_text %}
+          <a href="{{ hero_banner_config.button2_url }}" class="btn btn-outline-primary btn-lg d-inline-flex align-items-center">
+            <i class="fas fa-guitar me-2"></i>{{ hero_banner_config.button2_text }}
+          </a>
+          {% endif %}
         </div>
+      </div>
     </div>
+  </div>
 </section>
 
 <!-- Discos Destacados (para todos) -->
@@ -108,10 +109,10 @@
             <div class="col-lg-4 col-md-6 mb-4">
                 <div class="card h-100 fade-in-up">
                     {% if instrumento.imagen_principal %}
-                        <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top" alt="{{ instrumento.nombre }}">
+                        <img src="{{ instrumento.imagen_principal.url }}" class="card-img-top instrument-card-img" alt="{{ instrumento.nombre }}">
                     {% else %}
-                        <div class="card-img-top d-flex align-items-center justify-content-center bg-secondary">
-                            <i class="fas fa-guitar fa-4x text-muted"></i>
+                        <div class="card-img-top instrument-card-placeholder">
+                            <i class="fas fa-guitar"></i>
                         </div>
                     {% endif %}
                     
